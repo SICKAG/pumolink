@@ -1,0 +1,8 @@
+#usda 1.0
+(
+    defaultPrim = "Sensor"
+)
+def SickSensor "Sensor"
+{
+    int intAttr = 0
+}

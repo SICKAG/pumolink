@@ -1,0 +1,90 @@
+# Python USD ModelLink (pumolink)
+![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/python-injector/injector) 
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Python USD ModelLink is an Omniverse Extension that offers a library to easily develop _kit_ applications.
+This library allows you to connect Python classes and OpenUSD Prims using decorators. Corresponding instances of the Python class are created as soon as a corresponding prim is added to the stage. The instance is also removed when the prim is deleted. Attributes can be easily observed. You can easily register for various events. Dependency Injection is also used to be able to use all common Omniverse/OpenUsd objects.
+
+## Installation and how to get?
+
+- Use Omniverse Extension Manager
+
+## Usage
+The connection of Python classes and OpenUSD Prims are called _link_. 
+### Import from modellink
+Import what you need, read the API Documentation for all possibilities.
+```python
+from modellink import linked, on_update, usd_attr
+```
+### Define the link
+Define which UsdSchema should be connected to your Python class ('Cube', in this case). Links can also be created without UsdSchema, see API documentation.
+```python
+@linked('Cube')
+class MyDevice:
+    ...
+```
+
+### Injection
+If necessary, just have a few Omniverse or OpenUsd objects injected, e.g. the Stage
+```python
+    @inject
+    def __init__(self, stage: Usd.Stage ) -> None:
+        ...
+```
+
+### Events
+Event decorators starting with 'on_' and in this example the 'update' event is used. So the name for the decorator is: 'on_update'.
+```python
+    @on_update
+    def update(self, prim: Usd.Prim):
+        self.rot += 0.5
+        setRotate(prim, Gf.Vec3f(0.0, self.rot, 0.0))
+```
+### Observe Prim attributes 
+You can also simply observe Usd Prim attributes.
+```python
+    @usd_attr('size')
+    def attr_size_change(self, val: float):
+        carb.log_info(f"attr_change .size={val}")
+```
+
+
+### Full example
+```python
+from injector import inject
+from modellink import linked, on_update, usd_attr
+
+
+@linked('Cube')
+class MyDevice:
+
+    @inject
+    def __init__(self, stage: Usd.Stage ) -> None:
+        carb.log_info("init called!")
+        self._stage = stage
+        self.rot = 0.0
+
+    @on_update
+    def update(self, prim: Usd.Prim):
+        self.rot += 0.5
+        setRotate(prim, Gf.Vec3f(0.0, self.rot, 0.0))
+
+    @usd_attr('size')
+    def attr_size_change(self, val: float):
+        carb.log_info(f"attr_change .size={val}")
+
+```
+
+### Most Important Decorators 
+
+|Decorator|Description|Parameters|
+|-|-|-|
+| `@linked` | Linked a class to a Prim. The correct prim is recognized using 'detection'. The detection can be specified as an argument to the decorator. This decorator is for classes only. | <ul><li>`@linked` or `@linked()` will activate any prim that contains the entry `linkedClass='yourClass'` in customData or assetInfo.</li><li>`@linked('YourSchema')` will activate any Prim where the Schema is 'YourPrim'</li><li>`@linked(your_function)` will activate any Prim where a function `def your_function(prim: Usd.Prim)->bool` returns True</li></ul>|
+| `@usd_attr` | Observes a Prim attribute. The function is called every time the attribute changes. The changed value is passed to the method as argument with the name of the attribute or the name specified in param_name. This decorator is for member functions only. | `@usd_attr('attributeName')`                                 |
+| `@on_update` | The function is called by an 'update' event. This decorator is for member functions only.| `@on_update` (only if 'playing') or `@on_update(editmode=True)` (always)|
+| `@on_play` | The function is called by a 'play' event. This decorator is for member functions only.|  |
+| `@on_pause` | The function is called by a 'pause' event. This decorator is for member functions only.|  |
+| `@on_stop` | The function is called by a 'stop' event. This decorator is for member functions only.|  |
+| `@on_event` | The function is called by any self named event. This decorator is for member functions only. | `@on_event('my_custom_event_name')` |
+

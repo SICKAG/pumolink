@@ -82,8 +82,8 @@ class MyDevice:
 
 ### Most Important Decorators 
 
-[!NOTE] 
-Do not use these decorators together with @inject. All decorators inject just like @inject
+>[!NOTE] 
+>Do not use these decorators together with @inject. All decorators inject just like @inject
 
 
 |Decorator|Description|Parameters|

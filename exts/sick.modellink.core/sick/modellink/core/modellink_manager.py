@@ -206,6 +206,7 @@ class ModelLinkActivator():
     type_custom = 'custom'
 
     def __init__(self, clazz, rule) -> None:
+        self.enabled = True
         self.members = Members()
         self.clazz = clazz
         self.detectFunc = self._default_detect
@@ -326,6 +327,11 @@ class ModelLinkManager:
             }
         )
         self._modellink_event_stream.pump()
+    
+    def set_class_enabled(self, clazz, enabled: bool):
+        activator = self._find_activator_by_class_name(clazz.__name__)
+        if activator:
+            activator.enabled = enabled
 
     def add_usd_attr(self, func, path: str, param_name: str | None):
         if param_name is None:
@@ -388,7 +394,7 @@ class ModelLinkManager:
     def create_new_link(self, prim: Usd.Prim):
         activator = self._find_activator(prim)
         if activator:
-            instance = self._create(activator.clazz)  # also handles injection
+            instance = self._create(activator.clazz, prim)  # also handles injection
             self._links[prim.GetPrimPath()] = ModelLink(instance, prim, activator)
             self._modellink_event_stream.push(
                 sick.modellink.core.MODELLINK_ADDED,
@@ -461,8 +467,14 @@ class ModelLinkManager:
         self._modellink_event_stream = events.acquire_events_interface().create_event_stream()
         self._event_cache = None
 
-    def _create(self, clazz):
-        return self._injector.get(clazz)
+    def _create(self, clazz, prim: Usd.Prim):
+        func = clazz.__init__
+        bindings = get_bindings(func)
+        kargs = {}
+        if bool(bindings): # special handling for Usd.Prim
+            kargs = {k:prim for (k, v) in bindings.items() if v is Usd.Prim}
+
+        return self._injector.create_object(clazz, kargs)
 
     def _extract_class_name(self, func: Callable) -> str:
         return func.__qualname__.split('.')[0]  # TODO: make it work for nested classes etc.

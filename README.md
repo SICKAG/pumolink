@@ -26,7 +26,11 @@ class MyDevice:
 ```
 
 ### Injection
-If necessary, just have a few Omniverse or OpenUsd objects injected, e.g. the Stage
+
+If necessary, just have a few Omniverse or OpenUsd objects injected, e.g. the Stage.
+
+Python USD ModelLink uses a library called 'Injector' for dependency injection. For more information see: https://pypi.org/project/injector/
+
 ```python
     @inject
     def __init__(self, stage: Usd.Stage ) -> None:
@@ -77,6 +81,10 @@ class MyDevice:
 ```
 
 ### Most Important Decorators 
+
+[!NOTE] 
+Do not use these decorators together with @inject. All decorators inject just like @inject
+
 
 |Decorator|Description|Parameters|
 |-|-|-|

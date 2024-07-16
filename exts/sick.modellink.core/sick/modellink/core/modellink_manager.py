@@ -142,7 +142,7 @@ def usd_attr(path: str, param_name: str | None = None):
     return inner
 
 
-def linked(*args):
+def linked(*args, enabled: bool = True):
     """ Decorator to link a class to a prim. The correct prim is recognized using 'detection'. 
     The detection can be specified as an argument to the decorator.
 
@@ -177,7 +177,7 @@ def linked(*args):
 
     def inner(c):
         if inspect.isclass(c):
-            activator = ModelLinkActivator(c, rule)
+            activator = ModelLinkActivator(c, rule, enabled)
             manager = ModelLinkManager()
             manager.add_activator(activator)
         return c
@@ -205,8 +205,8 @@ class ModelLinkActivator():
     type_schema = 'schema'
     type_custom = 'custom'
 
-    def __init__(self, clazz, rule) -> None:
-        self.enabled = True
+    def __init__(self, clazz, rule, enabled=True) -> None:
+        self.enabled = enabled
         self.members = Members()
         self.clazz = clazz
         self.detectFunc = self._default_detect
@@ -328,14 +328,21 @@ class ModelLinkManager:
         )
         self._modellink_event_stream.pump()
     
-    def set_class_enabled(self, clazz, enabled: bool):
+    def set_class_enabled(self, clazz, enabled: bool, keep_links: bool = False):
         activator = self._find_activator_by_class_name(clazz.__name__)
         if activator:
             activator.enabled = enabled
+        
+        # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #if keep_links:
+        #    # self.update_links()    
+        #else:
+        #    self._remove_links_for_activator(activator)
+        
 
     def add_usd_attr(self, func, path: str, param_name: str | None):
         if param_name is None:
-            param_name = path
+            param_name = path.split('.')[-1]
         name = self._extract_class_name(func)
         if name not in self._members:
             self._members[name] = Members()

@@ -10,7 +10,7 @@ from sick.modellink.core.modellink_manager import linked, on_update, usd_attr
 """
 
 
-@linked('Cube')
+@linked('Cube', enabled=False)
 class CubeHandler:
 
     def __init__(self) -> None:
@@ -20,6 +20,6 @@ class CubeHandler:
     def update(self):
         log_info("update called")
 
-    @usd_attr('size', param_name='val')
-    def attr_size_change(self, val: float):
-        log_info(f"attribute '.size' changed, new value is: {str(val)}")
+    @usd_attr('size')
+    def attr_size_change(self, size: float):
+        log_info(f"attribute '.size' changed, new value is: {str(size)}")

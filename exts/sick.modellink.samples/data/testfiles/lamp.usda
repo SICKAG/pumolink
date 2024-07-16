@@ -1,0 +1,405 @@
+#usda 1.0
+(
+    defaultPrim = "Lamp"
+    metersPerUnit = 0.01
+    upAxis = "Z"
+)
+
+def Xform "Lamp" (
+    assetInfo = {
+        string linkedClass = "LampClass"
+    }
+    kind = "component"
+)
+{
+    custom rel switch = </Lamp/GlassCase/Light.visibility>
+    custom bool lamp_on = true
+    double3 xformOp:rotateXYZ = (0, 0, 0)
+    double3 xformOp:scale = (1, 1, 1)
+    double3 xformOp:translate = (0, 0, 0)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+    def Cylinder "BottomCase" (
+        kind = "subcomponent"
+    )
+    {
+        uniform token axis = "Z"
+        float3[] extent = [(-2, -2, -1.55), (2, 2, 1.55)]
+        double height = 3.1
+        rel material:binding = </Lamp/Looks/m1> (
+            bindMaterialAs = "weakerThanDescendants"
+        )
+        double radius = 2
+        custom bool refinementEnableOverride = 1
+        custom int refinementLevel = 2
+        token visibility = "inherited"
+        double3 xformOp:rotateXYZ = (0, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 1.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+
+    def Cylinder "GlassCase" (
+        apiSchemas = ["MaterialBindingAPI"]
+        kind = "subcomponent"
+    )
+    {
+        uniform token axis = "Z"
+        uniform bool doubleSided = 0
+        float3[] extent = [(-2, -2, -2.5), (2, 2, 2.5)]
+        double height = 5
+        rel material:binding = </Lamp/Looks/m2> (
+            bindMaterialAs = "weakerThanDescendants"
+        )
+        double radius = 2
+        custom bool refinementEnableOverride = 1
+        custom int refinementLevel = 2
+        token visibility = "inherited"
+        double3 xformOp:rotateXYZ = (0, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 5.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+        def CylinderLight "Light" (
+            apiSchemas = ["ShapingAPI"]
+            kind = "subcomponent"
+        )
+        {
+            bool disableFogInteraction = 0
+            float3[] extent = [(-5, -5, -50), (5, 5, 50)]
+            color3f inputs:color = (1, 1, 1)
+            float inputs:colorTemperature = 6500
+            float inputs:diffuse = 1
+            float inputs:exposure = 2.5
+            float inputs:intensity = 200000
+            float inputs:length = 5
+            bool inputs:normalize = 0
+            float inputs:radius = 0.1
+            float inputs:shaping:cone:angle = 180
+            float inputs:shaping:cone:softness
+            float inputs:shaping:focus
+            color3f inputs:shaping:focusTint
+            asset inputs:shaping:ies:file
+            float inputs:specular = 1
+            bool treatAsLine = 0
+            token visibility = "inherited"
+            bool visibleInPrimaryRay = 0
+            double3 xformOp:rotateXYZ = (0, 90, 0)
+            double3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (3.34477023813709e-28, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+    }
+
+    def Scope "Looks"
+    {
+        token visibility = "inherited"
+
+        def Material "m1"
+        {
+            token outputs:displacement.connect = </Lamp/Looks/m1/Shader.outputs:displacement>
+            token outputs:surface.connect = </Lamp/Looks/m1/Shader.outputs:surface>
+
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0 (
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:clearcoatRoughness = 0.01 (
+                    customData = {
+                        float default = 0.01
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                color3f inputs:diffuseColor = (0.039713178, 0.053960387, 0.28571427) (
+                    customData = {
+                        float3 default = (0.18, 0.18, 0.18)
+                    }
+                    hidden = false
+                    renderType = "color"
+                )
+                float inputs:displacement = 0 (
+                    customData = {
+                        float default = 0
+                    }
+                    hidden = false
+                )
+                color3f inputs:emissiveColor = (0, 0, 0) (
+                    customData = {
+                        float3 default = (0, 0, 0)
+                    }
+                    hidden = false
+                    renderType = "color"
+                )
+                float inputs:ior = 1.5 (
+                    customData = {
+                        float default = 1.5
+                        dictionary range = {
+                            float max = 3.4028235e38
+                            float min = 0
+                        }
+                        dictionary soft_range = {
+                            float max = 5
+                            float min = 1
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:metallic = 0.32 (
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                normal3f inputs:normal = (0, 0, 1) (
+                    customData = {
+                        float3 default = (0, 0, 1)
+                        dictionary range = {
+                            float3 max = (1, 1, 1)
+                            float3 min = (-1, -1, -1)
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:occlusion = 1 (
+                    customData = {
+                        float default = 1
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    doc = """This parameter is unused.
+"""
+                    hidden = false
+                )
+                float inputs:opacity = 1 (
+                    customData = {
+                        float default = 1
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:opacityThreshold = 0 (
+                    connectability = "interfaceOnly"
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:roughness = 0.5 (
+                    customData = {
+                        float default = 0.5
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                color3f inputs:specularColor = (0.33227152, 0.1022346, 0.980695) (
+                    customData = {
+                        float3 default = (0, 0, 0)
+                    }
+                    hidden = false
+                    renderType = "color"
+                )
+                int inputs:useSpecularWorkflow = 0 (
+                    connectability = "interfaceOnly"
+                    customData = {
+                        int default = 0
+                        dictionary range = {
+                            int max = 1
+                            int min = 0
+                        }
+                        string widgetType = "checkBox"
+                    }
+                    hidden = false
+                )
+                token outputs:displacement (
+                    renderType = "material"
+                )
+                token outputs:surface (
+                    renderType = "material"
+                )
+            }
+        }
+
+        def Material "m2"
+        {
+            token outputs:displacement.connect = </Lamp/Looks/m2/Shader.outputs:displacement>
+            token outputs:surface.connect = </Lamp/Looks/m2/Shader.outputs:surface>
+
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:clearcoat = 0 (
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:clearcoatRoughness = 0.01 (
+                    customData = {
+                        float default = 0.01
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                color3f inputs:diffuseColor = (0.77220076, 0.19677661, 0) (
+                    customData = {
+                        float3 default = (0.18, 0.18, 0.18)
+                    }
+                    hidden = false
+                    renderType = "color"
+                )
+                float inputs:displacement = 0 (
+                    customData = {
+                        float default = 0
+                    }
+                    hidden = false
+                )
+                color3f inputs:emissiveColor = (0, 0, 0) (
+                    customData = {
+                        float3 default = (0, 0, 0)
+                    }
+                    hidden = false
+                    renderType = "color"
+                )
+                float inputs:ior = 1.5 (
+                    customData = {
+                        float default = 1.5
+                        dictionary range = {
+                            float max = 3.4028235e38
+                            float min = 0
+                        }
+                        dictionary soft_range = {
+                            float max = 5
+                            float min = 1
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:metallic = 0 (
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                normal3f inputs:normal = (0, 0, 1) (
+                    customData = {
+                        float3 default = (0, 0, 1)
+                        dictionary range = {
+                            float3 max = (1, 1, 1)
+                            float3 min = (-1, -1, -1)
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:occlusion = 1 (
+                    customData = {
+                        float default = 1
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    doc = """This parameter is unused.
+"""
+                    hidden = false
+                )
+                float inputs:opacity = 0.71 (
+                    customData = {
+                        float default = 1
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:opacityThreshold = 0 (
+                    connectability = "interfaceOnly"
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                float inputs:roughness = 0.29 (
+                    customData = {
+                        float default = 0.5
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    hidden = false
+                )
+                color3f inputs:specularColor = (0, 0, 0) (
+                    customData = {
+                        float3 default = (0, 0, 0)
+                    }
+                    hidden = false
+                    renderType = "color"
+                )
+                int inputs:useSpecularWorkflow = 0 (
+                    connectability = "interfaceOnly"
+                    customData = {
+                        int default = 0
+                        dictionary range = {
+                            int max = 1
+                            int min = 0
+                        }
+                        string widgetType = "checkBox"
+                    }
+                    hidden = false
+                )
+                token outputs:displacement (
+                    renderType = "material"
+                )
+                token outputs:surface (
+                    renderType = "material"
+                )
+            }
+        }
+    }
+}
+

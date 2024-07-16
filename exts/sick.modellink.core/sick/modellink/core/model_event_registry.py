@@ -137,7 +137,7 @@ class ModelEventRegistry:
         for resync_path in objects_changed.GetResyncedPaths():
             if resync_path.IsPrimPath():
                 prim = self._stage.GetPrimAtPath(resync_path)
-                if prim:
+                if prim and prim.IsActive():
                     self._manager.create_new_link(prim)
                 if not prim:
                     self._manager.remove_link(resync_path)

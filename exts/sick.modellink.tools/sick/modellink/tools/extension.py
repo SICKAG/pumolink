@@ -106,6 +106,7 @@ class ActivatorDelegate(ui.AbstractItemDelegate):
     def build_widget(self, model, item, column_id, level, expanded):
         ui.Label(
             model.get_item_value_model(item, column_id),
+            style={"color": "white" if item.activator.enabled else "grey"},
         )
 
     def build_header(self, column_id):

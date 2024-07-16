@@ -13,16 +13,15 @@ class LampClass:
     def __init__(self, prim: Usd.Prim, stage: Usd.Stage) -> None:
         self.prim = prim
         self.stage = stage
-        self.enable_light(False) 
+        self.enable_light(False)
 
 
     @usd_attr("lamp_on", param_name="enabled")
     def enable_light(self, enabled: bool):
-       rel = self.prim.GetRelationship("switch")
-       for target in rel.GetForwardedTargets():
-           carb.log_info(f"Target: {target}")
-           attr = self.stage.GetAttributeAtPath(target)
-           attr.Set(UsdGeom.Tokens.inherited if enabled else UsdGeom.Tokens.invisible)
+        rel = self.prim.GetRelationship("switch")
+        for target in rel.GetForwardedTargets():
+            attr = self.stage.GetAttributeAtPath(target)
+            attr.Set(UsdGeom.Tokens.inherited if enabled else UsdGeom.Tokens.invisible)
 
 
 @linked
@@ -44,10 +43,10 @@ class LightBarrierClass:
     def on_ray(self, ray: rq.Ray, hit: rq.RayQueryResult):
 
         self.send_signal(hit.valid)
-        if hit.valid:
-            carb.log_info(f"Hit: {hit.get_target_usd_path()} from {self._its_prim.GetPath()} Distance: {hit.hit_t}")
-        else:
-            carb.log_info("Miss")
+        #if hit.valid:
+        #    carb.log_info(f"Hit: {hit.get_target_usd_path()} from {self._its_prim.GetPath()} Distance: {hit.hit_t}")
+        #else:
+        #    carb.log_info("Miss")
 
     @on_update(editmode=True)
     def update(self, prim: Usd.Prim):

@@ -327,18 +327,24 @@ class ModelLinkManager:
             }
         )
         self._modellink_event_stream.pump()
-    
+
     def set_class_enabled(self, clazz, enabled: bool, keep_links: bool = False):
         activator = self._find_activator_by_class_name(clazz.__name__)
         if activator:
             activator.enabled = enabled
-        
+
+            if enabled:
+                self.update_links()
+            elif not keep_links:
+                self._remove_links_for_activator(activator)
+
+
         # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         #if keep_links:
         #    # self.update_links()    
         #else:
         #    self._remove_links_for_activator(activator)
-        
+
 
     def add_usd_attr(self, func, path: str, param_name: str | None):
         if param_name is None:
@@ -400,7 +406,7 @@ class ModelLinkManager:
 
     def create_new_link(self, prim: Usd.Prim):
         activator = self._find_activator(prim)
-        if activator:
+        if activator and activator.enabled:
             instance = self._create(activator.clazz, prim)  # also handles injection
             self._links[prim.GetPrimPath()] = ModelLink(instance, prim, activator)
             self._modellink_event_stream.push(

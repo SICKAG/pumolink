@@ -104,9 +104,10 @@ class LinkItem(ui.AbstractItem):
 class ActivatorDelegate(ui.AbstractItemDelegate):
 
     def build_widget(self, model, item, column_id, level, expanded):
-        ui.Label(
+        lbl = ui.Label(
             model.get_item_value_model(item, column_id),
             style={"color": "white" if item.activator.enabled else "grey"},
+            mouse_double_clicked_fn=lambda _x, _y, _b, _m: ModelLinkManager().set_class_enabled(item.activator.clazz, not item.activator.enabled)
         )
 
     def build_header(self, column_id):

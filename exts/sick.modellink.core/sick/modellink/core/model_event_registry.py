@@ -36,7 +36,6 @@ class ModelEventRegistry:
 
     def clear(self):
         self._clear_usd_events()
-        self._manager.clear_links()  # TODO: should "clear" do that ?
         self._stage_listener = None
 
     ############################
@@ -53,6 +52,10 @@ class ModelEventRegistry:
             carb.log_info(f"MODELLINK_ACTIVATOR_ADDED {e.payload}")
         elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_REMOVED):
             carb.log_info(f"MODELLINK_ACTIVATOR_REMOVED {e.payload}")
+        elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_ENABLED):
+            carb.log_info(f"MODELLINK_ACTIVATOR_ENABLED {e.payload}")
+        elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_DISABLED):
+            carb.log_info(f"MODELLINK_ACTIVATOR_DISABLED {e.payload}")
 
 
     def _is_event_type_used(self, provider):
@@ -113,7 +116,6 @@ class ModelEventRegistry:
                                                      omni.timeline.TimelineEventType.PAUSE: "pause",
                                                      omni.timeline.TimelineEventType.STOP: "stop"}))
         # self.add_event_provider(PhysXEventProvider())
-        
         # get_pre_update_event_stream()
         # self.add_event_provider(EventStreamProvider(omni.kit.app.get_app().get_message_bus_event_stream(), {0: "message_bus"}))
         # self.add_event_provider(EventStreamProvider(omni.kit.app.get_app().get_selection_event_stream(), {0: "selection"}))
@@ -126,7 +128,6 @@ class ModelEventRegistry:
             self._listener.Revoke()
 
         self._stage = None
-        # self._on_update = None
         self._deactivate_event_providers()
 
     def _handle_usd_event(self, objects_changed, sender):

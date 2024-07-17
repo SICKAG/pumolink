@@ -1,9 +1,9 @@
 import asyncio
 import threading
+import carb
 import omni.ext
 import omni.ui as ui
-from sick.modellink.core import ModelLinkManager
-
+import sick.modellink.core as ml
 
 class ModelLinkToolsExtension(omni.ext.IExt):
 
@@ -45,22 +45,39 @@ class ModelLinkToolsExtension(omni.ext.IExt):
 
         self.build_ui()
 
-        ml = ModelLinkManager()
+        manager = ml.ModelLinkManager()
 
-        def refresh():
-            links_list = ml.get_modellinks()
+        self._subscription = ml.ModelLinkManager().get_event_stream().create_subscription_to_push(self.on_changes)
+
+
+        def refresh():  # refresh every 5 seconds in case somethink changes besides the events
+            links_list = manager.get_modellinks()
             self._links_model.set_list(links_list)
-            activator_list = ml.get_activators()
+            activator_list = manager.get_activators()
             self._activators_model.set_list(activator_list)
-            self.timer = threading.Timer(3, refresh)
+            self.timer = threading.Timer(5, refresh)
             self.timer.start()
 
         refresh()
+
+
+    def on_changes(self, e: carb.events.IEvent):
+        manager = ml.ModelLinkManager()
+        if e.type == int(ml.MODELLINK_ACTIVATOR_ADDED) \
+                or e.type == int(ml.MODELLINK_ACTIVATOR_REMOVED) \
+                or e.type == int(ml.MODELLINK_ACTIVATOR_ENABLED) \
+                or e.type == int(ml.MODELLINK_ACTIVATOR_DISABLED):
+            self._activators_model.set_list(manager.get_activators())
+
+        if e.type == int(ml.MODELLINK_ADDED) or e.type == int(ml.MODELLINK_REMOVED):
+            self._links_model.set_list(manager.get_modellinks())
+
 
     def on_shutdown(self):
         print("[sick.modellink.tool] sick  modellink_tool shutdown")
         if self.timer:
             self.timer.cancel()
+        self._subscription = None
 
     def build_ui(self):
         self._window = ui.Window("ModelLink Monitor", width=300, height=300)
@@ -78,7 +95,7 @@ class ModelLinkToolsExtension(omni.ext.IExt):
                             style_type_name_override="TreeView",
                         ):
                             ui.TreeView(self._links_model, delegate=self._link_delegate, columns_resizable=True, column_widths=[ui.Fraction(0.4), ui.Fraction(0.3), ui.Fraction(0.3)], header_visible=True, root_visible=False)
-                    with ui.CollapsableFrame("ModelLink Activators"):
+                    with ui.CollapsableFrame("ModelLink Activators \n(Double click to disable/enable Activator)"):
                         with ui.ScrollingFrame(
                             height=200,
                             horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF,
@@ -104,10 +121,10 @@ class LinkItem(ui.AbstractItem):
 class ActivatorDelegate(ui.AbstractItemDelegate):
 
     def build_widget(self, model, item, column_id, level, expanded):
-        lbl = ui.Label(
+        ui.Label(
             model.get_item_value_model(item, column_id),
             style={"color": "white" if item.activator.enabled else "grey"},
-            mouse_double_clicked_fn=lambda _x, _y, _b, _m: ModelLinkManager().set_class_enabled(item.activator.clazz, not item.activator.enabled)
+            mouse_double_clicked_fn=lambda _x, _y, _b, _m: ml.ModelLinkManager().set_class_enabled(item.activator.clazz, not item.activator.enabled)
         )
 
     def build_header(self, column_id):

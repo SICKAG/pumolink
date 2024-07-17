@@ -11,6 +11,8 @@ MODELLINK_ADDED = carb.events.type_from_string(f"{PREFIX}.MODELLINK_ADDED")
 MODELLINK_REMOVED = carb.events.type_from_string(f"{PREFIX}.MODELLINK_REMOVED")
 MODELLINK_ACTIVATOR_ADDED = carb.events.type_from_string(f"{PREFIX}.MODELLINK_ACTIVATOR_ADDED")
 MODELLINK_ACTIVATOR_REMOVED = carb.events.type_from_string(f"{PREFIX}.MODELLINK_ACTIVATOR_REMOVED")
+MODELLINK_ACTIVATOR_ENABLED = carb.events.type_from_string(f"{PREFIX}.MODELLINK_ACTIVATOR_ENABLED")
+MODELLINK_ACTIVATOR_DISABLED = carb.events.type_from_string(f"{PREFIX}.MODELLINK_ACTIVATOR_DISABLED")
 
 
 def get_event_stream() -> carb.events.IEventStream:

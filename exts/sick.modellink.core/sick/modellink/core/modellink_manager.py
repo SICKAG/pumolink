@@ -318,15 +318,11 @@ class ModelLinkManager:
         self._activators[activator.detectType][activator.reference] = activator
         self._move_members_to_activator(activator.clazz.__name__, activator)
         self._event_cache = None
-        self._modellink_event_stream.push(
-            sick.modellink.core.MODELLINK_ACTIVATOR_ADDED,
-            payload={
-                "detector": activator.detectType,
-                "reference": activator.reference,
-                "class_name": activator.clazz.__name__
-            }
-        )
-        self._modellink_event_stream.pump()
+        self._fire_modellink_event(sick.modellink.core.MODELLINK_ACTIVATOR_ADDED,
+                                   payload={"detector": activator.detectType,
+                                            "reference": activator.reference,
+                                            "class_name": activator.clazz.__name__})
+
 
     def set_class_enabled(self, clazz, enabled: bool, keep_links: bool = False):
         activator = self._find_activator_by_class_name(clazz.__name__)
@@ -338,12 +334,11 @@ class ModelLinkManager:
             elif not keep_links:
                 self._remove_links_for_activator(activator)
 
-
-        # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        #if keep_links:
-        #    # self.update_links()    
-        #else:
-        #    self._remove_links_for_activator(activator)
+            self._fire_modellink_event(sick.modellink.core.MODELLINK_ACTIVATOR_ENABLED if enabled
+                                       else sick.modellink.core.MODELLINK_ACTIVATOR_DISABLED,
+                                       payload={"detector": activator.detectType,
+                                                "reference": activator.reference,
+                                                "class_name": activator.clazz.__name__})
 
 
     def add_usd_attr(self, func, path: str, param_name: str | None):
@@ -395,9 +390,8 @@ class ModelLinkManager:
                     self._discard_intern(value, _map, key)
 
     def clear_links(self):
-        for link in self._links.values():
-            link.destroy()
-        self._links.clear()
+        for key in list(self._links.keys()):
+            self.remove_link(key)
 
     def clear(self):
         self.clear_links()
@@ -409,27 +403,17 @@ class ModelLinkManager:
         if activator and activator.enabled:
             instance = self._create(activator.clazz, prim)  # also handles injection
             self._links[prim.GetPrimPath()] = ModelLink(instance, prim, activator)
-            self._modellink_event_stream.push(
-                sick.modellink.core.MODELLINK_ADDED,
-                payload={
-                    "prim_path": prim.GetPrimPath(),
-                    "class_name": activator.clazz.__name__
-                }
-            )
-            self._modellink_event_stream.pump()
+            self._fire_modellink_event(sick.modellink.core.MODELLINK_ADDED,
+                                       payload={"prim_path": prim.GetPrimPath(),
+                                                "class_name": activator.clazz.__name__})
 
     def remove_link(self, resync_path):
         link = self._links.pop(resync_path, None)
         if link:
             link.destroy()
-            self._modellink_event_stream.push(
-                sick.modellink.core.MODELLINK_REMOVED,
-                payload={
-                    "prim_path": resync_path,
-                    "class_name": link._activator.clazz.__name__
-                }
-            )
-            self._modellink_event_stream.pump()
+            self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,
+                                       payload={"prim_path": resync_path,
+                                                "class_name": link._activator.clazz.__name__})
 
     def property_changed(self, changed_path):
         prim_path = changed_path.GetPrimPath()
@@ -451,17 +435,18 @@ class ModelLinkManager:
         for link in self._links.values():
             yield link
 
-    def update_links(self, renew_all=False):
-        stage = usd.get_context().get_stage()
+    def update_links(self, renew_all=False, stage: Usd.Stage | None = None):
+
+        if not stage:
+            stage = usd.get_context().get_stage()
+
         if stage:
             for prim in stage.Traverse():
                 if renew_all or prim.GetPath() not in self._links:
                     self.create_new_link(prim)
 
     def link_entire_stage(self, stage):
-        if stage:
-            for prim in stage.Traverse():
-                self.create_new_link(prim)
+        self.update_links(renew_all=True, stage=stage)
 
     #############################
     # Private methods
@@ -479,6 +464,10 @@ class ModelLinkManager:
         self._links: dict[str, ModelLink] = {}
         self._modellink_event_stream = events.acquire_events_interface().create_event_stream()
         self._event_cache = None
+
+    def _fire_modellink_event(self, event_type: int, payload):
+        self._modellink_event_stream.push(event_type, payload=payload)
+        self._modellink_event_stream.pump()
 
     def _create(self, clazz, prim: Usd.Prim):
         func = clazz.__init__
@@ -544,8 +533,7 @@ class ModelLinkManager:
     def _remove_links_for_activator(self, activator: ModelLinkActivator):
         for key, link in list(self._links.items()):
             if link._activator is activator:
-                link.destroy()
-                del self._links[key]
+                self.remove_link(key)
 
     def _clear_activators(self):
         self._activators = {
@@ -562,13 +550,8 @@ class ModelLinkManager:
         self._remove_links_for_activator(value)
         del _map[key]
         self._event_cache = None
-        self._modellink_event_stream.push(
-            sick.modellink.core.MODELLINK_ACTIVATOR_REMOVED,
-            payload={
-                "detector": value.detectType,
-                "reference": value.reference,
-                "class_name": value.clazz.__name__
-            }
-        )
-        self._modellink_event_stream.pump()
 
+        self._fire_modellink_event(sick.modellink.core.MODELLINK_ACTIVATOR_REMOVED,
+                                   payload={"detector": value.detectType,
+                                            "reference": value.reference,
+                                            "class_name": value.clazz.__name__})

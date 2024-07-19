@@ -7,7 +7,7 @@ import carb
 
 
 @linked
-class LampClass:
+class Switchable:
 
     @inject
     def __init__(self, prim: Usd.Prim, stage: Usd.Stage) -> None:
@@ -16,9 +16,9 @@ class LampClass:
         self.enable_light(False)
 
 
-    @usd_attr("lamp_on", param_name="enabled")
+    @usd_attr("vac:on", param_name="enabled")
     def enable_light(self, enabled: bool):
-        rel = self.prim.GetRelationship("switch")
+        rel = self.prim.GetRelationship("vac:switch")
         for target in rel.GetForwardedTargets():
             attr = self.stage.GetAttributeAtPath(target)
             attr.Set(UsdGeom.Tokens.inherited if enabled else UsdGeom.Tokens.invisible)
@@ -37,7 +37,7 @@ class LightBarrierClass:
         rel = self._its_prim.GetRelationship("stateReceiver")
         for target in rel.GetForwardedTargets():
             prim = self._stage.GetPrimAtPath(target)
-            attr = prim.GetAttribute("lamp_on")
+            attr = prim.GetAttribute("vac:on")
             attr.Set(enabled)
 
     def on_ray(self, ray: rq.Ray, hit: rq.RayQueryResult):

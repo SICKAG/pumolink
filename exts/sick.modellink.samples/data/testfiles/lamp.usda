@@ -7,13 +7,13 @@
 
 def Xform "Lamp" (
     assetInfo = {
-        string linkedClass = "LampClass"
+        string linkedClass = "Switchable"
     }
     kind = "component"
 )
 {
-    custom rel switch = </Lamp/GlassCase/Light.visibility>
-    custom bool lamp_on = true
+    custom rel vac:switch = </Lamp/GlassCase/Light.visibility>
+    custom bool vac:on = true
     double3 xformOp:rotateXYZ = (0, 0, 0)
     double3 xformOp:scale = (1, 1, 1)
     double3 xformOp:translate = (0, 0, 0)

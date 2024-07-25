@@ -96,3 +96,6 @@ class MyDevice:
 | `@on_stop` | The function is called by a 'stop' event. This decorator is for member functions only.|  |
 | `@on_event` | The function is called by any self named event. This decorator is for member functions only. | `@on_event('my_custom_event_name')` |
 
+### Contribution
+
+We welcome contributions to our open-source GitHub project! Whether it's adding features, fixing bugs, or improving documentation, your help is appreciated. Check out our repository and join our community of contributors. Thank you for your support!

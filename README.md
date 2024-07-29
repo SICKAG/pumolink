@@ -9,8 +9,8 @@ This library allows you to connect Python classes and OpenUSD Prims using decora
 ## Installation steps
 
 - Clone this repository 
-- Add Path of the `exts` folder to the Extension Manager and enable the extensions sick.modellink
-
+- Add Path of the `exts` folder to the Extension Manager and enable the extensions `sick.modellink`
+![](images/install_extension.mkv)
 ## Usage
 The connection of Python classes and OpenUSD Prims are called _link_. 
 
@@ -81,6 +81,57 @@ class MyDevice:
         carb.log_info(f"attr_change .size={val}")
 
 ```
+### Examples
+
+We provided some examples `sick.modellink.samples`.
+
+#### Handle Events
+
+This sample demonstrates how to use events. The prim will rotate when the 'play' button is pressed
+To see it in action:
+- create a new 'Cone' prim (not 'Mesh') in the stage
+- press the 'play' button to see the events being called
+![](images/cone_example.mkv)
+
+#### Simple 
+
+This sample demonstrates how to create a simple ModelLink.
+To see it in action:
+- create a new 'Cube' prim (not 'Mesh') in the stage
+- press the 'play' button to see the omniverse update event is calling the 'update' function
+- change the value of the 'size' attribute of the 'Cube' prim (in the Property Window)
+    to see the 'attr_size_change' function being called
+![](images/simple.mkv)
+
+#### Detection by custom function
+
+This sample demonstrates how to create a ModelLink using a custom function to detect the prim.
+    The function 'my_custom_function' is used to detect the prim to be linked.
+    The function should return True if the prim should be linked, otherwise False.
+    In this example, the prim is linked if it has an attribute 'id' with value 42.
+
+To see it in action:
+- Drag and drop the .usda file contained in '/data/testfiles/' into the stage
+![](images/detection_function.mkv)
+
+
+#### Detection by class 
+
+This sample demonstrates how to create a ModelLink using an information inside the prim
+    This information can be stored in the prim's metadata either in 'assetInfo' or in 'customData'.
+    The key used to store the information is 'linkedClass', the value is the name of the class to be linked.
+    e.g.
+        assetInfo = { 
+            string linkedClass = "SensorClass"
+        }
+
+To see it in action:
+- Drag and drop an .usda file contained in '/data/testfiles/' into the stage
+![](images/detection_class.mkv)
+
+#### LightBarrier Class
+
+![](images/light_barrier.mkv)
 
 ### Most Important Decorators 
 

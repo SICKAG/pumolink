@@ -91,7 +91,7 @@ This sample demonstrates how to use events. The prim will rotate when the 'play'
 To see it in action:
 - create a new 'Cone' prim (not 'Mesh') in the stage
 - press the 'play' button to see the events being called
-![](images/cone_example.mkv)
+![](images/cone_example.mp4)
 
 #### Simple 
 

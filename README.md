@@ -6,12 +6,14 @@
 Python USD ModelLink is an Omniverse Extension that offers a library to easily develop _kit_ applications.
 This library allows you to connect Python classes and OpenUSD Prims using decorators. Corresponding instances of the Python class are created as soon as a corresponding prim is added to the stage. The instance is also removed when the prim is deleted. Attributes can be easily observed. You can easily register for various events. Dependency Injection is also used to be able to use all common Omniverse/OpenUsd objects.
 
-## Installation and how to get?
+## Installation steps
 
-- Use Omniverse Extension Manager
+- Clone this repository 
+- Add Path of the `exts` folder to the Extension Manager and enable the extensions sick.modellink
 
 ## Usage
 The connection of Python classes and OpenUSD Prims are called _link_. 
+
 ### Import from modellink
 Import what you need, read the API Documentation for all possibilities.
 ```python
@@ -99,3 +101,4 @@ class MyDevice:
 ### Contribution
 
 We welcome contributions to our open-source GitHub project! Whether it's adding features, fixing bugs, or improving documentation, your help is appreciated. Check out our repository and join our community of contributors. Thank you for your support!
+[More infos](CODE_OF_CONDUCT.md)

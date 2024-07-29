@@ -93,10 +93,6 @@ To see it in action:
 - press the 'play' button to see the events being called
 ![](images/cone_example.mp4)
 
-<video width="320" height="240" controls>
-  <source src="images/cone_example.mp4" type="video/mp4">
-</video>
-
 #### Simple 
 
 This sample demonstrates how to create a simple ModelLink.

@@ -98,4 +98,6 @@ class MyDevice:
 
 ### Contribution
 
-We welcome contributions to our open-source GitHub project! Whether it's adding features, fixing bugs, or improving documentation, your help is appreciated. Check out our repository and join our community of contributors. Thank you for your support!
+We welcome contributions to our open-source GitHub project! Whether it's adding features, fixing bugs, or improving documentation, your help is appreciated. Check out our repository and join our community of contributors. Thank you for your support! 
+([Contributing](CONTRIBUTING.md),
+[Code of conduct](CODE_OF_CONDUCT.md))

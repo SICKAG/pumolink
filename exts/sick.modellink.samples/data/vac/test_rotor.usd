@@ -1,0 +1,27 @@
+#usda 1.0
+(
+    defaultPrim = "Rotor"
+)
+def Xform "Rotor"
+(
+    assetInfo = { 
+        string linkedClass = "Rotor"
+    }
+)
+{
+    custom rel vac:target = [</Rotor/Cube>]
+    custom double3 vac:axis = (0, 0, 1)
+    custom double vac:offset = 0.0
+    custom double2 vac:range = (-180.0, 180.0)
+    custom double vac:factor = 1.0
+    custom bool vac:clamp = true
+
+    custom double vac:value = 0.0
+
+    def Xform "Cube"
+    {
+        def Cube "CubeMesh"
+        {
+        }
+    }
+}

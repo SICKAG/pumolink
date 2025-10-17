@@ -1,0 +1,19 @@
+#usda 1.0
+(
+    defaultPrim = "WaveGen"
+)
+def Xform "WaveGen"
+(
+    assetInfo = { 
+        string linkedClass = "WaveGenerator"
+    }
+)
+{
+    custom rel stateReceiver = []
+    custom double vac:frequency = 1.0
+    custom double vac:amplitude = 1.0
+    custom double vac:phase = 0.0
+    custom string vac:waveType = "sin" (
+        allowedTokens = ["sin", "sawtooth", "square", "triangle"]
+    )
+}

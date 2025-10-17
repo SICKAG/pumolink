@@ -1,0 +1,17 @@
+#usda 1.0
+(
+    defaultPrim = "mqtt_coupler"
+)
+
+def "mqtt_coupler" (
+    assetInfo = { 
+        string linkedClass = "MqttCoupler"
+    }
+)
+{
+    float vac:value = 0.0
+    string vac:broker = "localhost"
+    int vac:port = 1883
+    string vac:topic = "vac/theta"
+    custom rel stateReceiver = []
+}

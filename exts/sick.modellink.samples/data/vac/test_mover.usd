@@ -1,0 +1,28 @@
+#usda 1.0
+(
+    defaultPrim = "Mover"
+)
+def Xform "Mover"
+(
+    assetInfo = { 
+        string linkedClass = "Mover"
+    }
+)
+{
+    custom rel vac:target = [</Mover/Cube>]
+    custom double3 vac:direction = (1, 0, 0)
+    custom double vac:offset = 0.0
+    custom double2 vac:range = (0.0, 5.0)
+    custom double vac:factor = 1.0
+    custom bool vac:clamp = false
+
+    custom double vac:value = 0.0
+
+    def Xform "Cube"
+    {
+        def Cube "CubeMesh"
+        {
+        }
+    }
+}
+

@@ -127,17 +127,21 @@ def on_event(_id: str | int):
 
 
 # decorator to link a method to a prim attribute
-def usd_attr(path: str, param_name: str | None = None):
+def usd_attr(paths: str, param_name: str | None = None):
     """ Decorator to link a method to a prim attribute. The method is called when the attribute changes.
         The changed value is passed to the method as argument with the name of the attribute
         or the name specified in param_name.
     Args:
-        path (str): the name of the attribute of the prim to be observed
+        paths (str): the names of the attributes (separated by semicolons) of the prim to be observed
         param_name (str | None, optional): the name of the parameter to be passed to the function. Defaults to the path.
     """
     def inner(f):
         manager = ModelLinkManager()
-        manager.add_usd_attr(f, path, param_name)
+        semicolon_separated_paths = [p.strip() for p in paths.split(';') if p.strip()]
+        do_injection = True
+        for path in semicolon_separated_paths:
+            manager.add_usd_attr(f, path, param_name, do_injection)
+            do_injection = False 
         return f
     return inner
 
@@ -341,14 +345,17 @@ class ModelLinkManager:
                                                 "class_name": activator.clazz.__name__})
 
 
-    def add_usd_attr(self, func, path: str, param_name: str | None):
+    def add_usd_attr(self, func, path: str, param_name: str | None, do_injection: bool = True):
         if param_name is None:
             param_name = path.split('.')[-1]
+            param_name = param_name.replace(':', '_')
+
         name = self._extract_class_name(func)
         if name not in self._members:
             self._members[name] = Members()
 
-        self._prepare_injection(func, param_name)
+        if do_injection:
+            self._prepare_injection(func, param_name)
         self._members[name].attr[path] = func
 
     def register_event(self, func, event_id: str | int, editmode: bool = False):

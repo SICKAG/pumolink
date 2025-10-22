@@ -20,6 +20,9 @@ def Xform "Rotor"
 
     def Xform "Cube"
     {
+        uniform token[] xformOpOrder = ["xformOp:orient"]
+        quatf xformOp:orient = (0, 0, 0, 1)
+        
         def Cube "CubeMesh"
         {
         }

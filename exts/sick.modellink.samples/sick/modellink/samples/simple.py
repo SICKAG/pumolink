@@ -23,3 +23,10 @@ class CubeHandler:
     @usd_attr('size')
     def attr_size_change(self, size: float):
         log_info(f"attribute '.size' changed, new value is: {str(size)}")
+
+
+@linked('OmniLidar', enabled=True)
+class OmniLidarHandler:
+
+    def __init__(self) -> None:
+        log_info("OmniLidar Initialized!")

@@ -1,6 +1,6 @@
 import carb
 import omni
-from pxr import Usd, Tf
+from pxr import Usd, Tf, Sdf
 import sick.modellink.core
 from .event_providers import EventProvider, EventStreamProvider
 from .modellink_manager import ModelLinkManager
@@ -135,6 +135,8 @@ class ModelEventRegistry:
         if sender is None or sender != self._stage:
             return
 
+        # carb.log_info(F"objects_changed {objects_changed.GetResyncedPaths()} : {objects_changed.GetChangedInfoOnlyPaths()}")
+
         for resync_path in objects_changed.GetResyncedPaths():
             if resync_path.IsPrimPath():
                 prim = self._stage.GetPrimAtPath(resync_path)
@@ -146,4 +148,18 @@ class ModelEventRegistry:
         for changed_path in objects_changed.GetChangedInfoOnlyPaths():
             if changed_path.IsPropertyPath():
                 self._manager.property_changed(changed_path)
+            elif self._is_reference_or_payload(changed_path):
+                pass # TODO: special handling for new references or payloads
+
+    def _is_reference_or_payload(self, path):
+
+        layer = self._stage.GetEditTarget().GetLayer()
+
+        prim_path = path.GetPrimPath()
+        spec = layer.GetPrimAtPath(prim_path)
+        if not spec:
+            return False
+
+        return spec.HasField(Sdf.FieldKeys.References) or spec.HasField(Sdf.FieldKeys.Payload)
+            
 

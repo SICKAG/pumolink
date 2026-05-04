@@ -415,7 +415,7 @@ class ModelLinkManager:
                                                 "class_name": activator.clazz.__name__})
 
     def remove_link(self, resync_path):
-        link = self._links.pop(resync_path, None)
+        link = self._links.pop(resync_path, None)        
         if link:
             link.destroy()
             self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,

@@ -16,8 +16,9 @@ class ModelEventRegistry:
     instance = None
 
     def __init__(self, manager: ModelLinkManager):
-
+        
         ModelEventRegistry.instance = self
+        self._counter = 0
         self._stage = None
         self._listener = None
         self._manager = manager
@@ -134,12 +135,14 @@ class ModelEventRegistry:
 
         if sender is None or sender != self._stage:
             return
-
-        # carb.log_info(F"objects_changed {objects_changed.GetResyncedPaths()} : {objects_changed.GetChangedInfoOnlyPaths()}")
-
+        
+        carb.log_info(F"State {self._counter}")
+        self._counter += 1
+        
         for resync_path in objects_changed.GetResyncedPaths():
             if resync_path.IsPrimPath():
                 prim = self._stage.GetPrimAtPath(resync_path)
+                carb.log_info(F"resync {resync_path} {prim}")
                 if prim and prim.IsActive():
                     self._manager.create_new_link(prim)
                 if not prim:
@@ -148,18 +151,23 @@ class ModelEventRegistry:
         for changed_path in objects_changed.GetChangedInfoOnlyPaths():
             if changed_path.IsPropertyPath():
                 self._manager.property_changed(changed_path)
-            elif self._is_reference_or_payload(changed_path):
-                pass # TODO: special handling for new references or payloads
+            elif self._has_arcs(changed_path):
+               self._manager.update_links()
 
-    def _is_reference_or_payload(self, path):
+    def _has_arcs(self, path):
+        prim = self._stage.GetPrimAtPath(path)
 
-        layer = self._stage.GetEditTarget().GetLayer()
+        if prim.GetReferences():
+            #carb.log_info(F"references {prim.GetReferences()}")
+            return True
 
-        prim_path = path.GetPrimPath()
-        spec = layer.GetPrimAtPath(prim_path)
-        if not spec:
-            return False
+        if prim.GetPayLoads():
+            #carb.log_info(F"payloads {prim.GetPayloads()}")
+            return True
+        
+        return False
 
-        return spec.HasField(Sdf.FieldKeys.References) or spec.HasField(Sdf.FieldKeys.Payload)
-            
+        
+
+
 

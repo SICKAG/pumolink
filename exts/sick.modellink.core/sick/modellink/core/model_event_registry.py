@@ -18,7 +18,6 @@ class ModelEventRegistry:
     def __init__(self, manager: ModelLinkManager):
         
         ModelEventRegistry.instance = self
-        self._counter = 0
         self._stage = None
         self._listener = None
         self._manager = manager
@@ -136,15 +135,16 @@ class ModelEventRegistry:
         if sender is None or sender != self._stage:
             return
         
-        carb.log_info(F"State {self._counter}")
-        self._counter += 1
-        
+        #carb.log_info(f"USD event received: {objects_changed.GetResyncedPaths()} resynced paths, {objects_changed.GetChangedInfoOnlyPaths()} changed info only paths")
+ 
         for resync_path in objects_changed.GetResyncedPaths():
             if resync_path.IsPrimPath():
                 prim = self._stage.GetPrimAtPath(resync_path)
-                carb.log_info(F"resync {resync_path} {prim}")
                 if prim and prim.IsActive():
-                    self._manager.create_new_link(prim)
+                    if len(prim.GetChildren()) > 0:
+                        self._manager.update_links()
+                    else:
+                        self._manager.create_new_link(prim)
                 if not prim:
                     self._manager.remove_link(resync_path)
 
@@ -157,16 +157,13 @@ class ModelEventRegistry:
     def _has_arcs(self, path):
         prim = self._stage.GetPrimAtPath(path)
 
-        if prim.GetReferences():
-            #carb.log_info(F"references {prim.GetReferences()}")
+        if prim.HasAuthoredReferences():
             return True
 
-        if prim.GetPayLoads():
-            #carb.log_info(F"payloads {prim.GetPayloads()}")
+        if prim.HasAuthoredPayloads():
             return True
         
         return False
-
         
 
 

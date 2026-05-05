@@ -414,15 +414,19 @@ class ModelLinkManager:
                                        payload={"prim_path": prim.GetPrimPath(),
                                                 "class_name": activator.clazz.__name__})
 
-    def remove_link(self, resync_path):
-        link = self._links.pop(resync_path, None)        
+    def remove_link(self, resync_path: Sdf.Path):
+        link = self._links.pop(resync_path, None)
+        if not link:
+            remove_sub_links = [key for key in self._links.keys() if key.HasPrefix(resync_path)]
+            for key in remove_sub_links:
+                self.remove_link(key)
         if link:
             link.destroy()
             self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,
                                        payload={"prim_path": resync_path,
                                                 "class_name": link._activator.clazz.__name__})
 
-    def property_changed(self, changed_path):
+    def property_changed(self, changed_path: Sdf.Path):
         prim_path = changed_path.GetPrimPath()
         link = self._links.get(prim_path, None)
         if link:
@@ -468,7 +472,7 @@ class ModelLinkManager:
             'custom': {}
         }
         self._members: dict[str, Members] = {}
-        self._links: dict[str, ModelLink] = {}
+        self._links: dict[Sdf.Path, ModelLink] = {}
         self._modellink_event_stream = events.acquire_events_interface().create_event_stream()
         self._event_cache = None
 

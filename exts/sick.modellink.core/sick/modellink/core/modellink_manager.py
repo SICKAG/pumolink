@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from typing import Callable, Iterator
 from carb import events
@@ -191,6 +192,19 @@ def linked(*args, enabled: bool = True):
     else:
         return inner
 
+# async function handling
+def _schedule_if_awaitable(result):
+    if inspect.isawaitable(result):
+        task = asyncio.ensure_future(result)
+
+        def _done(t):
+            try:
+                t.result()
+            except Exception as exc:
+                pass  # TODO: handle exception, e.g. log it
+            
+        task.add_done_callback(_done)
+
 
 class ModelLinkActivator():
     """ Represents the class and its members that are linked to any Usd Prim.
@@ -250,17 +264,21 @@ class ModelLinkActivator():
     #############################
     def _call(self, func, instance, prim, value):
         if not bool(func.__bindings__):
-            func(instance)
+            result = func(instance)
+            _schedule_if_awaitable(result)
             return
+
         if hasattr(func, '__meta_prim_params__'):
             kargs = {k: prim for k in func.__meta_prim_params__}
         else:
             kargs = {}
+
         if value is not None and hasattr(func, '__meta_value_param__'):
             kargs[func.__meta_value_param__] = value
 
         injector = ModelLinkManager()._injector
-        injector.call_with_injection(func, instance, kwargs=kargs)
+        result = injector.call_with_injection(func, instance, kwargs=kargs)
+        _schedule_if_awaitable(result)
 
     def _default_detect(self, *args) -> bool:
         return True

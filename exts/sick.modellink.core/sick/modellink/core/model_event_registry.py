@@ -134,10 +134,20 @@ class ModelEventRegistry:
 
         if sender is None or sender != self._stage:
             return
+
+        if self._stage is None:
+            return
         
         #carb.log_info(f"USD event received: {objects_changed.GetResyncedPaths()} resynced paths, {objects_changed.GetChangedInfoOnlyPaths()} changed info only paths")
  
         for resync_path in objects_changed.GetResyncedPaths():
+            if resync_path.IsAbsoluteRootPath():
+                # Root resync can happen when a top-level prim/subtree is removed.
+                # Rebuild links from scratch to avoid stale links.
+                self._manager.clear_links()
+                self._manager.update_links(renew_all=True, stage=self._stage)
+                continue
+
             if resync_path.IsPrimPath():
                 prim = self._stage.GetPrimAtPath(resync_path)
                 if prim and prim.IsActive():
@@ -145,7 +155,8 @@ class ModelEventRegistry:
                         self._manager.update_links()
                     else:
                         self._manager.create_new_link(prim)
-                if not prim:
+                else:
+                    # Treat inactive prims like removed ones for link cleanup.
                     self._manager.remove_link(resync_path)
 
         for changed_path in objects_changed.GetChangedInfoOnlyPaths():
@@ -155,6 +166,9 @@ class ModelEventRegistry:
                self._manager.update_links()
 
     def _has_arcs(self, path):
+        if self._stage is None:
+            return False
+
         prim = self._stage.GetPrimAtPath(path)
 
         if prim.HasAuthoredReferences():

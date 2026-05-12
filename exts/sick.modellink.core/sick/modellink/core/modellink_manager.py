@@ -76,7 +76,7 @@ def on_destroy(f):
     """ Decorator to link a method to the destroy event.
     """
     manager = ModelLinkManager()
-    manager.register_event(f, "destroy")
+    manager.register_event(f, "destroy", True)
     return f
 
 
@@ -205,6 +205,32 @@ def _schedule_if_awaitable(result):
             
         task.add_done_callback(_done)
 
+def _for_all_do(head: 'ModelLink', func: Callable[['ModelLink'], None]):
+    current = head
+    while current:
+        next_link = current.next
+        func(current)
+        current = next_link
+
+
+def _remove_from_linked_list(link: 'ModelLink') -> 'ModelLink | None':
+
+    if link.prev:
+        link.prev.next = link.next
+        new_head = link.prev
+        while new_head and new_head.prev:
+            new_head = new_head.prev
+    else:
+        new_head = link.next
+
+    if link.next:
+        link.next.prev = link.prev
+
+    link.next = None
+    link.prev = None
+    return new_head
+        
+
 
 class ModelLinkActivator():
     """ Represents the class and its members that are linked to any Usd Prim.
@@ -284,6 +310,7 @@ class ModelLinkActivator():
         return True
 
 
+
 class ModelLink:
     """ Represents a link between a specific prim and an instance of a specific class.
 
@@ -292,13 +319,18 @@ class ModelLink:
         prim (Usd.Prim): the prim to be linked
         activator (ModelLinkActivator): the activator that detected the link
     """
-    def __init__(self, instance, prim, activator):
+    def __init__(self, instance, prim, activator, next_link: 'ModelLink | None' = None):
         self._instance = instance
         self._prim = prim
         self._activator: ModelLinkActivator = activator
+        self.next: ModelLink | None = next_link  # for multiple activators on the same prim, e.g. one for schema and one for class
+        self.prev: ModelLink | None = None
+        if self.next:
+            self.next.prev = self
 
     def destroy(self):
-        pass
+        self._activator.call_event(type_for("destroy"), self._instance, self._prim)
+
 
     def property_changed(self, changed_path):
         self._activator.call_attr_changed(changed_path, self._instance, self._prim)
@@ -312,6 +344,7 @@ class Members:
     def __init__(self) -> None:
         self.attr = {}
         self.event = {}
+
 
 
 class ModelLinkManager:
@@ -352,7 +385,9 @@ class ModelLinkManager:
             activator.enabled = enabled
 
             if enabled:
-                self.update_links()
+                # Re-evaluate all prims so newly enabled activators are added
+                # even when a prim already has other links.
+                self.update_links(renew_all=True)
             elif not keep_links:
                 self._remove_links_for_activator(activator)
 
@@ -423,37 +458,46 @@ class ModelLinkManager:
         self._clear_activators()
         self._clear_members()
 
+
     def create_new_link(self, prim: Usd.Prim):
-        activator = self._find_activator(prim)
-        if activator and activator.enabled:
-            instance = self._create(activator.clazz, prim)  # also handles injection
-            self._links[prim.GetPrimPath()] = ModelLink(instance, prim, activator)
-            self._fire_modellink_event(sick.modellink.core.MODELLINK_ADDED,
-                                       payload={"prim_path": prim.GetPrimPath(),
-                                                "class_name": activator.clazz.__name__})
+        prim_path = prim.GetPrimPath()
+        activators = [a for a in self._find_activators(prim) if a.enabled]
+        if activators:
+
+            if prim_path in self._links:
+                self.remove_link(prim_path)
+
+            for activator in activators:
+                self._create_new_link(prim, activator)
 
     def remove_link(self, resync_path: Sdf.Path):
-        link = self._links.pop(resync_path, None)
-        if not link:
+        head = self._links.pop(resync_path, None)
+        if not head:
             remove_sub_links = [key for key in self._links.keys() if key.HasPrefix(resync_path)]
             for key in remove_sub_links:
                 self.remove_link(key)
-        if link:
+            return
+
+        def _remove_link_func(link: ModelLink):
+            link.next = None
+            link.prev = None
             link.destroy()
             self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,
                                        payload={"prim_path": resync_path,
                                                 "class_name": link._activator.clazz.__name__})
 
+        _for_all_do(head, _remove_link_func)
+
     def property_changed(self, changed_path: Sdf.Path):
         prim_path = changed_path.GetPrimPath()
-        link = self._links.get(prim_path, None)
-        if link:
-            link.property_changed(changed_path)
+        head = self._links.get(prim_path, None)
+        if head:
+            _for_all_do(head, lambda link: link.property_changed(changed_path))
 
     def dispatch_events(self, event_type: int):
-        for link in self._links.values():
-            if link:
-                link.dispatch_event(event_type)
+        for head in self._links.values():
+            if head:
+                _for_all_do(head, lambda link: link.dispatch_event(event_type))
 
     def get_activators(self) -> Iterator[ModelLinkActivator]:
         for activator in self._activators.values():
@@ -462,7 +506,11 @@ class ModelLinkManager:
 
     def get_modellinks(self) -> Iterator[ModelLink]:
         for link in self._links.values():
-            yield link
+            # iterate through linked list of links for each prim
+            current = link
+            while current:
+                yield current
+                current = current.next
 
     def update_links(self, renew_all=False, stage: Usd.Stage | None = None):
 
@@ -498,6 +546,22 @@ class ModelLinkManager:
         self._modellink_event_stream.push(event_type, payload=payload)
         self._modellink_event_stream.pump()
 
+    def _set_link(self, prim_path: Sdf.Path, link: ModelLink | None):
+        if link is None:
+            self._links.pop(prim_path, None)
+        else:
+            self._links[prim_path] = link
+
+
+    def _create_new_link(self, prim: Usd.Prim, activator: ModelLinkActivator):
+
+        instance = self._create(activator.clazz, prim)  # also handles injection
+        prim_path = prim.GetPrimPath()
+        self._links[prim_path] = ModelLink(instance, prim, activator, self._links.get(prim_path, None))
+        self._fire_modellink_event(sick.modellink.core.MODELLINK_ADDED,
+                                payload={"prim_path": prim_path,
+                                            "class_name": activator.clazz.__name__})
+
     def _create(self, clazz, prim: Usd.Prim):
         func = clazz.__init__
         bindings = get_bindings(func)
@@ -532,25 +596,32 @@ class ModelLinkManager:
                 activator.set_members(members)
                 del self._members[class_name]
 
-    def _find_activator(self, prim: Usd.Prim):
+
+    def _find_activators(self, prim: Usd.Prim) -> list[ModelLinkActivator]:
+        result = []
+
         # first look for schema
         if bool(self._activators['schema']):
             schema = prim.GetTypeName()
-            if schema in self._activators['schema']:
-                return self._activators['schema'][schema]
+            activator = self._activators['schema'].get(schema)
+            if activator:
+                result.append(activator)
 
-        # second look for classlinks
+        # second look for class links
         if bool(self._activators['class']):
-            custom_data = prim.GetCustomDataByKey("linkedClass") or prim.GetAssetInfoByKey("linkedClass")
-            if custom_data in self._activators['class']:
-                return self._activators['class'][custom_data]
+            class_refs = sorted(self._linked_class_refs(prim), key=str.casefold)
+            for class_ref in class_refs:
+                activator = self._activators['class'].get(class_ref)
+                if activator and activator not in result:
+                    result.append(activator)
 
         # then look for custom
         if bool(self._activators['custom']):
             for activator in self._activators['custom'].values():
-                if activator.detectFunc(prim):
-                    return activator
-        return None
+                if activator.detectFunc(prim) and activator not in result:
+                    result.append(activator)
+
+        return result
 
     def _find_activator_by_class_name(self, name) -> ModelLinkActivator | None:
         for _map in self._activators.values():
@@ -560,9 +631,46 @@ class ModelLinkManager:
         return None
 
     def _remove_links_for_activator(self, activator: ModelLinkActivator):
-        for key, link in list(self._links.items()):
-            if link._activator is activator:
-                self.remove_link(key)
+
+        for prim_path, head in list(self._links.items()):
+
+            def _remove_if_matches(link: ModelLink):
+                if link._activator is not activator:
+                    return
+
+                new_head = _remove_from_linked_list(link)
+                self._set_link(prim_path, new_head)
+                link.destroy()
+                self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,
+                                           payload={"prim_path": prim_path,
+                                                    "class_name": link._activator.clazz.__name__})
+
+            _for_all_do(head, _remove_if_matches)
+
+    def _linked_class_refs(self, prim: Usd.Prim) -> list[str]:
+        refs = []
+
+        for key in ("linkedClasses", "linkedClass"):
+            for value in (prim.GetCustomDataByKey(key), prim.GetAssetInfoByKey(key)):
+                for item in self._normalize_linked_class_value(value):
+                    if item not in refs:
+                        refs.append(item)
+
+        return refs
+
+    def _normalize_linked_class_value(self, value) -> list[str]:
+        if value is None:
+            return []
+
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(';') if part.strip()]
+
+        try:
+            values = list(value)
+        except TypeError:
+            values = [value]
+
+        return [str(item).strip() for item in values if str(item).strip()]
 
     def _clear_activators(self):
         self._activators = {

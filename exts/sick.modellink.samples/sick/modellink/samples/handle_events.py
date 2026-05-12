@@ -1,7 +1,7 @@
 from carb import log_info
 from pxr import Usd, Gf
 from injector import inject
-from sick.modellink.core.modellink_manager import linked, on_pause, on_play, on_stop, on_update
+from sick.modellink.core.modellink_manager import linked, on_destroy, on_pause, on_play, on_stop, on_update
 from .geo_tools import setRotate
 
 
@@ -39,3 +39,7 @@ class MyEventsHandler:
         log_info("Rotation stopped!")
         self.rot = 0.0
         setRotate(prim, Gf.Vec3f(0.0, self.rot, 0.0))
+
+    @on_destroy
+    def destroy(self):
+        log_info("on_destroy called, used for cleanup if necessary")

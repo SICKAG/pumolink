@@ -1,0 +1,17 @@
+[package]
+version = "1.0.0"
+authors = ["Sick AG"]
+title = "modellink storage"
+description = "Shared storage service for ModelLink"
+readme = "docs/README.md"
+repository = ""
+category = "Other"
+keywords = ["kit", "modellink", "storage"]
+changelog = "docs/CHANGELOG.md"
+icon = "data/icon.png"
+
+[dependencies]
+"sick.modellink.core" = {}
+
+[[python.module]]
+name = "sick.modellink.storage"

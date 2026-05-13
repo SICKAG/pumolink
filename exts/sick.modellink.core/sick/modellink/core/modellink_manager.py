@@ -458,6 +458,9 @@ class ModelLinkManager:
         self._clear_activators()
         self._clear_members()
 
+    def bind_instance(self, interface, instance):
+        self._injector.binder.bind(interface, to=instance)
+
 
     def create_new_link(self, prim: Usd.Prim):
         prim_path = prim.GetPrimPath()

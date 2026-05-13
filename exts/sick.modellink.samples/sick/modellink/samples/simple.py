@@ -30,3 +30,9 @@ class OmniLidarHandler:
 
     def __init__(self) -> None:
         log_info("OmniLidar Initialized!")
+
+@linked('SickSensor', enabled=True)
+class SickSensorHandler:
+
+    def __init__(self) -> None:
+        log_info("SickSensor Initialized!")

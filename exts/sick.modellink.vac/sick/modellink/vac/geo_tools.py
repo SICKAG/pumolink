@@ -64,11 +64,11 @@ def setRotate(prim: Usd.Prim, rV: Gf.Vec3f):
 
     # Set rotate.
     rotate = prim.GetAttribute(rotateAttrName).Get()
-    if rotate != None:
+    if rotate is not None:
         # Specify a value for each type.
-        if type(rotate) == Gf.Vec3f:
+        if type(rotate) is Gf.Vec3f:
             prim.GetAttribute(rotateAttrName).Set(Gf.Vec3f(rV))
-        elif type(rotate) == Gf.Vec3d:
+        elif type(rotate) is Gf.Vec3d:
             prim.GetAttribute(rotateAttrName).Set(Gf.Vec3d(rV))
     else:
         # xformOpOrder is also updated.

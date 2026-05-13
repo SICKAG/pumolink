@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Callable
 import carb.events
 
@@ -25,11 +25,13 @@ class EventProvider(ABC):
             new_map[int(k)] = type_for(v)
         return new_map
 
+    @abstractmethod
     def get_types(self):
         """ Returns the types of events that this provider can provide.
         """
         pass
 
+    @abstractmethod
     def activate(self, func: Callable):
         """ Activates the provider. When an event is received, the function will be called with the event type as argument.
 
@@ -37,7 +39,8 @@ class EventProvider(ABC):
             func (Callable): The function to call when an event is received. The function shoulds look like "def func(event_type: int):"
         """
         pass
-
+    
+    @abstractmethod
     def deactivate(self):
         """ Deactivates the provider. No more events should be received after this is called.
         """

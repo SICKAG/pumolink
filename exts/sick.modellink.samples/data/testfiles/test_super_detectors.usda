@@ -1,0 +1,45 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+)
+
+def Xform "Root"
+{
+    def Cube "BySchema"
+    {
+    }
+
+    def Xform "ByLinkedClass"
+    (
+        customData = {
+            string linkedClass = "SuperClassHandler"
+        }
+    )
+    {
+    }
+
+    def Xform "ByLinkedClassesList"
+    (
+        customData = {
+            string[] linkedClasses = ["SuperClassesAHandler", "SuperClassesBHandler"]
+        }
+    )
+    {
+    }
+
+    def Xform "ByCustomFunction"
+    {
+        int id = 42
+    }
+
+    def Cube "AllDetectors"
+    (
+        customData = {
+            string linkedClass = "SuperClassHandler"
+            string linkedClasses = "SuperClassesAHandler;SuperClassesBHandler"
+        }
+    )
+    {
+        int id = 42
+    }
+}

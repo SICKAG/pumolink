@@ -17,6 +17,7 @@ class ModelEventRegistry:
 
     def __init__(self, manager: ModelLinkManager):
         
+        self.verbose = True
         ModelEventRegistry.instance = self
         self._stage = None
         self._listener = None
@@ -24,15 +25,16 @@ class ModelEventRegistry:
         self._context = omni.usd.get_context()
         self._stage_listener = self._context.get_stage_event_stream().create_subscription_to_pop(self._on_stage_event)
         self._event_providers = []
-        self._register_event_providers()
-        self._handle_stage_open()
+        self._register_event_providers()        
         self._modellink_listener = ModelLinkManager().get_event_stream().create_subscription_to_pop(self._on_modellink_event)
+        self._handle_stage_open()        
 
     ############################
     # Public methods
     ############################
     def add_event_provider(self, provider: EventProvider):
         self._event_providers.append(provider)
+        self._activate_event_providers()
 
     def clear(self):
         self._clear_usd_events()
@@ -41,21 +43,26 @@ class ModelEventRegistry:
     ############################
     # Private methods
     ############################
+    def _babble(self, text: str):
+        if self.verbose:
+            carb.log_info(text)    
+
     def _on_modellink_event(self, e: carb.events.IEvent):
+
         if e.type == int(sick.modellink.core.MODELLINK_ADDED):
-            carb.log_info(f"MODELLINK_ADDED {e.payload}")
-            self._activate_event_providers()
+            self._babble(f"MODELLINK_ADDED {e.payload}")
         elif e.type == int(sick.modellink.core.MODELLINK_REMOVED):
-            carb.log_info(f"MODELLINK_REMOVED {e.payload}")
-            self._activate_event_providers()
+            self._babble(f"MODELLINK_REMOVED {e.payload}")
         elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_ADDED):
-            carb.log_info(f"MODELLINK_ACTIVATOR_ADDED {e.payload}")
+            self._babble(f"MODELLINK_ACTIVATOR_ADDED {e.payload}")
         elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_REMOVED):
-            carb.log_info(f"MODELLINK_ACTIVATOR_REMOVED {e.payload}")
+            self._babble(f"MODELLINK_ACTIVATOR_REMOVED {e.payload}")
         elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_ENABLED):
-            carb.log_info(f"MODELLINK_ACTIVATOR_ENABLED {e.payload}")
+            self._babble(f"MODELLINK_ACTIVATOR_ENABLED {e.payload}")
         elif e.type == int(sick.modellink.core.MODELLINK_ACTIVATOR_DISABLED):
-            carb.log_info(f"MODELLINK_ACTIVATOR_DISABLED {e.payload}")
+            self._babble(f"MODELLINK_ACTIVATOR_DISABLED {e.payload}")
+                    
+        self._activate_event_providers()
 
 
     def _is_event_type_used(self, provider):

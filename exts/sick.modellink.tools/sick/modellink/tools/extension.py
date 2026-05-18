@@ -5,6 +5,15 @@ import omni.ext
 import omni.ui as ui
 import sick.modellink.core as ml
 
+
+def _sort_text(value) -> str:
+    if value is None:
+        return ""
+    try:
+        return str(value).lower()
+    except Exception:
+        return ""
+
 class ModelLinkToolsExtension(omni.ext.IExt):
 
     def wait_docking(self, window, neighbor_name: str):
@@ -107,9 +116,32 @@ class ModelLinkToolsExtension(omni.ext.IExt):
 
 
 class ActivatorItem(ui.AbstractItem):
-    def __init__(self, activator):
+    def __init__(self, activator, parent=None):
         super().__init__()
         self.activator = activator
+        self.parent = parent
+
+
+class ClusterItem(ui.AbstractItem):
+    def __init__(self, name: str, children=None, cluster_key=None):
+        super().__init__()
+        self.name = name
+        self.cluster_key = cluster_key
+        self.children = children or []
+        self.parent = None
+        self.expanded = True
+
+    @property
+    def enabled_count(self) -> int:
+        return sum(1 for child in self.children if child.activator.enabled)
+
+    @property
+    def all_enabled(self) -> bool:
+        return bool(self.children) and self.enabled_count == len(self.children)
+
+    @property
+    def all_disabled(self) -> bool:
+        return self.enabled_count == 0
 
 
 class LinkItem(ui.AbstractItem):
@@ -121,10 +153,47 @@ class LinkItem(ui.AbstractItem):
 class ActivatorDelegate(ui.AbstractItemDelegate):
 
     def build_widget(self, model, item, column_id, level, expanded):
+        is_cluster = hasattr(item, "children") and not hasattr(item, "activator")
+        color = "white"
+        if is_cluster and item.all_disabled:
+            color = "grey"
+        if not is_cluster and not item.activator.enabled:
+            color = "grey"
+
+        def _toggle(_x, _y, _b, _m):
+            manager = ml.ModelLinkManager()
+            if is_cluster:
+                manager.set_cluster_enabled(item.cluster_key, not item.all_enabled)
+            else:
+                manager.set_class_enabled(item.activator.clazz, not item.activator.enabled)
+
+        if is_cluster and column_id == 0:
+            icon = "-" if item.expanded else "+"
+
+            button_ref = {"widget": None}
+
+            def _toggle_expand():
+                model.toggle_cluster_expanded(item)
+                widget = button_ref["widget"]
+                if widget is not None:
+                    try:
+                        widget.text = "-" if item.expanded else "+"
+                    except Exception:
+                        pass
+
+            with ui.HStack(spacing=4):
+                button_ref["widget"] = ui.Button(icon, width=18, clicked_fn=_toggle_expand)
+                ui.Label(
+                    model.get_item_value_model(item, column_id),
+                    style={"color": color},
+                    mouse_double_clicked_fn=_toggle,
+                )
+            return
+
         ui.Label(
             model.get_item_value_model(item, column_id),
-            style={"color": "white" if item.activator.enabled else "grey"},
-            mouse_double_clicked_fn=lambda _x, _y, _b, _m: ml.ModelLinkManager().set_class_enabled(item.activator.clazz, not item.activator.enabled)
+            style={"color": color},
+            mouse_double_clicked_fn=_toggle,
         )
 
     def build_header(self, column_id):
@@ -156,23 +225,97 @@ class LinkDelegate(ui.AbstractItemDelegate):
 class ActivatorModel(ui.AbstractItemModel):
     def __init__(self, activator_list=[]):
         super().__init__()
-        self._children = [ActivatorItem(t) for t in activator_list]
+        self._children = []
+        self.set_list(activator_list)
 
     def set_list(self, activator_list):
-        self._children = [ActivatorItem(t) for t in activator_list]
+        previous_expanded = {
+            getattr(c, "cluster_key", c.name): c.expanded
+            for c in self._children
+            if hasattr(c, "children")
+        }
+        grouped = {}
+        for activator in activator_list:
+            cluster = getattr(activator, "cluster", None)
+            if isinstance(cluster, str):
+                cluster = cluster.strip() or None
+            else:
+                cluster = None
+            if cluster not in grouped:
+                grouped[cluster] = []
+            grouped[cluster].append(activator)
+
+        children = []
+        for cluster_name in sorted(grouped.keys(), key=_sort_text):
+            activators = sorted(
+                grouped[cluster_name],
+                key=lambda a: _sort_text(f"{getattr(a.clazz, '__module__', '')}.{getattr(a.clazz, '__qualname__', '')}"),
+            )
+            activator_children = [ActivatorItem(a) for a in activators]
+            display_name = "(not clustered)" if cluster_name is None else str(cluster_name)
+            cluster_item = ClusterItem(display_name, activator_children, cluster_name)
+            cluster_item.expanded = previous_expanded.get(cluster_name, True)
+            for child in activator_children:
+                child.parent = cluster_item
+            children.append(cluster_item)
+
+        self._children = children
+        self._rows = self._build_rows(children)
         self._item_changed(None)
 
+    def _build_rows(self, clusters):
+        rows = []
+        for cluster in clusters:
+            rows.append(cluster)
+            if cluster.expanded:
+                rows.extend(cluster.children)
+        return rows
+
+    def toggle_cluster_expanded(self, cluster_item):
+        cluster_item.expanded = not cluster_item.expanded
+        self._rows = self._build_rows(self._children)
+        self._item_changed(None)
+        
+
+    def _is_cluster_item(self, item) -> bool:
+        return isinstance(item, ClusterItem)
+
+    def _is_activator_item(self, item) -> bool:
+        return isinstance(item, ActivatorItem)
+
+    def _is_tree_root_proxy(self, item) -> bool:
+        return item is not None and not self._is_cluster_item(item) and not self._is_activator_item(item)
+
     def get_item_children(self, item):
-        if item is not None:
-            return []
-        return self._children
+        if item is None or self._is_tree_root_proxy(item):
+            return self._rows
+        return []
+
+    def get_item_parent(self, item):
+        if item is None:
+            return None
+        return getattr(item, "parent", None)
+
+    def can_item_have_children(self, item):
+        return item is None or self._is_tree_root_proxy(item)
 
     def get_item_value_model_count(self, item):
         return 3
 
     def get_item_value_model(self, item, column_id):
+        if self._is_tree_root_proxy(item):
+            return ""
+
+        if self._is_cluster_item(item):
+            switcher = {
+                0: str(item.name),
+                1: "",
+                2: "",
+            }
+            return switcher.get(column_id, "")
+
         switcher = {
-            0: str(item.activator.clazz.__qualname__),
+            0: f"{'    ' if getattr(item, 'parent', None) is not None else ''}{str(item.activator.clazz.__qualname__)}",
             1: str(item.activator.clazz.__module__),
             2: f"{item.activator.detectType} ({item.activator.reference})"
         }

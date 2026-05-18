@@ -147,7 +147,7 @@ def usd_attr(paths: str, param_name: str | None = None):
     return inner
 
 
-def linked(*args, enabled: bool = True):
+def linked(*args, enabled: bool = True, cluster: str | None = None):
     """ Decorator to link a class to a prim. The correct prim is recognized using 'detection'. 
     The detection can be specified as an argument to the decorator.
 
@@ -182,7 +182,7 @@ def linked(*args, enabled: bool = True):
 
     def inner(c):
         if inspect.isclass(c):
-            activator = ModelLinkActivator(c, rule, enabled)
+            activator = ModelLinkActivator(c, rule, enabled, cluster)
             manager = ModelLinkManager()
             manager.add_activator(activator)
         return c
@@ -249,8 +249,9 @@ class ModelLinkActivator():
     type_schema = 'schema'
     type_custom = 'custom'
 
-    def __init__(self, clazz, rule, enabled=True) -> None:
+    def __init__(self, clazz, rule, enabled=True, cluster: str | None = None) -> None:
         self.enabled = enabled
+        self.cluster = cluster
         self.members = Members()
         self.clazz = clazz
         self.detectFunc = self._default_detect
@@ -376,7 +377,8 @@ class ModelLinkManager:
         self._fire_modellink_event(sick.modellink.core.MODELLINK_ACTIVATOR_ADDED,
                                    payload={"detector": activator.detectType,
                                             "reference": activator.reference,
-                                            "class_name": activator.clazz.__name__})
+                                            "class_name": activator.clazz.__name__,
+                                            "cluster": activator.cluster})
 
 
     def set_class_enabled(self, clazz, enabled: bool, keep_links: bool = False):
@@ -395,7 +397,35 @@ class ModelLinkManager:
                                        else sick.modellink.core.MODELLINK_ACTIVATOR_DISABLED,
                                        payload={"detector": activator.detectType,
                                                 "reference": activator.reference,
-                                                "class_name": activator.clazz.__name__})
+                                                "class_name": activator.clazz.__name__,
+                                                "cluster": activator.cluster})
+
+
+    def set_cluster_enabled(self, cluster: str | None, enabled: bool, keep_links: bool = False):
+        matched = [a for a in self.get_activators() if getattr(a, "cluster", None) == cluster]
+        if not matched:
+            return
+
+        changed = False
+        for activator in matched:
+            if activator.enabled == enabled:
+                continue
+
+            activator.enabled = enabled
+            changed = True
+
+            if not enabled and not keep_links:
+                self._remove_links_for_activator(activator)
+
+            self._fire_modellink_event(sick.modellink.core.MODELLINK_ACTIVATOR_ENABLED if enabled
+                                       else sick.modellink.core.MODELLINK_ACTIVATOR_DISABLED,
+                                       payload={"detector": activator.detectType,
+                                                "reference": activator.reference,
+                                                "class_name": activator.clazz.__name__,
+                                                "cluster": activator.cluster})
+
+        if enabled and changed:
+            self.update_links(renew_all=True)
 
 
     def add_usd_attr(self, func, path: str, param_name: str | None, do_injection: bool = True):
@@ -612,7 +642,7 @@ class ModelLinkManager:
 
         # second look for class links
         if bool(self._activators['class']):
-            class_refs = sorted(self._linked_class_refs(prim), key=str.casefold)
+            class_refs = self._linked_class_refs(prim)
             for class_ref in class_refs:
                 activator = self._activators['class'].get(class_ref)
                 if activator and activator not in result:
@@ -694,4 +724,5 @@ class ModelLinkManager:
         self._fire_modellink_event(sick.modellink.core.MODELLINK_ACTIVATOR_REMOVED,
                                    payload={"detector": value.detectType,
                                             "reference": value.reference,
-                                            "class_name": value.clazz.__name__})
+                                            "class_name": value.clazz.__name__,
+                                            "cluster": value.cluster})

@@ -13,7 +13,7 @@ from sick.modellink.core.modellink_manager import linked
     - Drag and drop an .usda file contained in '/data/testfiles/' into the stage
 """
 
-@linked
+@linked(cluster="detected_by")
 class MyClassHandler:
 
     def __init__(self) -> None:

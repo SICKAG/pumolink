@@ -18,14 +18,14 @@ from sick.modellink.core.modellink_manager import linked
 """
 
 
-@linked
+@linked(cluster="detected_by")
 class MyClassesAHandler:
 
     def __init__(self) -> None:
         log_info("Detected by Classes sample A initialized!")
 
 
-@linked
+@linked(cluster="detected_by")
 class MyClassesBHandler:
 
     def __init__(self) -> None:

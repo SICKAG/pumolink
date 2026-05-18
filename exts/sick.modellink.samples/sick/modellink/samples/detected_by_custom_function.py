@@ -16,7 +16,7 @@ def my_custom_function(prim: Usd.Prim):
     return prim.HasAttribute('id') and prim.GetAttribute('id').Get() == 42
 
 
-@linked(my_custom_function)
+@linked(my_custom_function, cluster="detected_by")
 class MyCustomHandler:
 
     def __init__(self) -> None:

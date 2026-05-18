@@ -124,7 +124,7 @@ class ModelLinkStorageExtension(omni.ext.IExt):
         if event.type != int(ml.MODELLINK_ADDED):
             return
 
-        payload = dict(event.payload) if event.payload else {}
+        payload = self._payload_to_dict(event.payload)
         prim_path = payload.get("prim_path")
         class_name = payload.get("class_name")
         if not prim_path or not class_name:
@@ -142,3 +142,25 @@ class ModelLinkStorageExtension(omni.ext.IExt):
         for candidate in manager.get_activators():
             if candidate.enabled and candidate.clazz.__name__ == class_name and _matches_activator(prim, candidate):
                 self._service.scope_for(prim, candidate.reference)
+
+    def _payload_to_dict(self, payload) -> dict:
+        if payload is None:
+            return {}
+
+        if isinstance(payload, dict):
+            return payload
+
+        try:
+            return dict(payload)
+        except Exception:
+            pass
+
+        result = {}
+        for key in ("prim_path", "class_name", "detector", "reference", "cluster"):
+            try:
+                value = payload.get(key)
+            except Exception:
+                value = None
+            if value is not None:
+                result[key] = value
+        return result

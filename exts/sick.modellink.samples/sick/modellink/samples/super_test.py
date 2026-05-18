@@ -25,31 +25,31 @@ def super_custom_detector(prim: Usd.Prim) -> bool:
     return prim.HasAttribute("id") and prim.GetAttribute("id").Get() == 42
 
 
-@linked("Cube")
+@linked("Cube", cluster="super_test")
 class SuperSchemaHandler:
     def __init__(self) -> None:
         log_info("[super_test] Schema detector linked (Cube)")
 
 
-@linked
+@linked(cluster="super_test")
 class SuperClassHandler:
     def __init__(self) -> None:
         log_info("[super_test] Class detector linked (linkedClass)")
 
 
-@linked
+@linked(cluster="super_test")
 class SuperClassesAHandler:
     def __init__(self) -> None:
         log_info("[super_test] Classes detector linked (A)")
 
 
-@linked
+@linked(cluster="super_test")
 class SuperClassesBHandler:
     def __init__(self) -> None:
         log_info("[super_test] Classes detector linked (B)")
 
 
-@linked(super_custom_detector)
+@linked(super_custom_detector, cluster="super_test")
 class SuperCustomHandler:
     def __init__(self) -> None:
         log_info("[super_test] Custom detector linked (id == 42)")

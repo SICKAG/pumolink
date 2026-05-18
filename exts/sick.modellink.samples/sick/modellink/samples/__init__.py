@@ -4,4 +4,5 @@ import sick.modellink.samples.detected_by_class
 import sick.modellink.samples.detected_by_classes
 import sick.modellink.samples.detected_by_custom_function
 import sick.modellink.samples.handle_events
+import sick.modellink.samples.storage_shared_state
 import sick.modellink.samples.super_test

@@ -6,7 +6,7 @@ import carb
 import paho.mqtt.client as mqtt
 
 
-@linked
+@linked(cluster="VAC")
 class MqttCoupler:
 
     @inject

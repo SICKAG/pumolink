@@ -41,7 +41,6 @@ class ModelLinkToolsExtension(omni.ext.IExt):
 
         asyncio.ensure_future(__waiter())
 
-
     def on_startup(self, ext_id):
         print("[sick.modellink.tool] sick  modellink_tool startup")
 
@@ -93,9 +92,6 @@ class ModelLinkToolsExtension(omni.ext.IExt):
         with self._window.frame:
             with ui.ScrollingFrame(horizontal_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_ALWAYS_OFF, vertical_scrollbar_policy=ui.ScrollBarPolicy.SCROLLBAR_AS_NEEDED):
                 with ui.VStack(height=0):
-                    # with ui.CollapsableFrame("Tools"):
-                    #    with ui.VStack(height=0):
-                    #        ui.Button("Copy Python Template from Selection to Clipboard")
                     with ui.CollapsableFrame("ModelLinks"):
                         with ui.ScrollingFrame(
                             height=200,
@@ -116,10 +112,10 @@ class ModelLinkToolsExtension(omni.ext.IExt):
 
 
 class ActivatorItem(ui.AbstractItem):
-    def __init__(self, activator, parent=None):
+    def __init__(self, activator):
         super().__init__()
         self.activator = activator
-        self.parent = parent
+        self.parent = None
 
 
 class ClusterItem(ui.AbstractItem):
@@ -152,49 +148,54 @@ class LinkItem(ui.AbstractItem):
 
 class ActivatorDelegate(ui.AbstractItemDelegate):
 
-    def build_widget(self, model, item, column_id, level, expanded):
-        is_cluster = hasattr(item, "children") and not hasattr(item, "activator")
-        color = "white"
-        if is_cluster and item.all_disabled:
-            color = "grey"
-        if not is_cluster and not item.activator.enabled:
-            color = "grey"
+    @staticmethod
+    def _get_color(item) -> str:
+        if isinstance(item, ClusterItem):
+            return "grey" if item.all_disabled else "white"
+        if isinstance(item, ActivatorItem):
+            return "white" if item.activator.enabled else "grey"
+        return "white"
 
-        def _toggle(_x, _y, _b, _m):
-            manager = ml.ModelLinkManager()
-            if is_cluster:
-                manager.set_cluster_enabled(item.cluster_key, not item.all_enabled)
-            else:
-                manager.set_class_enabled(item.activator.clazz, not item.activator.enabled)
+    @staticmethod
+    def _toggle_enabled(item):
+        manager = ml.ModelLinkManager()
+        if isinstance(item, ClusterItem):
+            manager.set_cluster_enabled(item.cluster_key, not item.all_enabled)
+        elif isinstance(item, ActivatorItem):
+            manager.set_class_enabled(item.activator.clazz, not item.activator.enabled)
 
-        if is_cluster and column_id == 0:
-            icon = "-" if item.expanded else "+"
-
-            button_ref = {"widget": None}
-
-            def _toggle_expand():
-                model.toggle_cluster_expanded(item)
-                widget = button_ref["widget"]
-                if widget is not None:
-                    try:
-                        widget.text = "-" if item.expanded else "+"
-                    except Exception:
-                        pass
-
-            with ui.HStack(spacing=4):
-                button_ref["widget"] = ui.Button(icon, width=18, clicked_fn=_toggle_expand)
-                ui.Label(
-                    model.get_item_value_model(item, column_id),
-                    style={"color": color},
-                    mouse_double_clicked_fn=_toggle,
-                )
-            return
-
+    def _build_label(self, model, item, column_id, color: str, toggle_handler):
         ui.Label(
             model.get_item_value_model(item, column_id),
             style={"color": color},
-            mouse_double_clicked_fn=_toggle,
+            mouse_double_clicked_fn=toggle_handler,
         )
+
+    def _build_cluster_cell(self, model, item, column_id, color: str, toggle_handler):
+        icon = "-" if item.expanded else "+"
+        button_ref = {"widget": None}
+
+        def _toggle_expand():
+            model.toggle_cluster_expanded(item)
+            widget = button_ref["widget"]
+            if widget is not None:
+                widget.text = "-" if item.expanded else "+"
+
+        with ui.HStack(spacing=4):
+            button_ref["widget"] = ui.Button(icon, width=18, clicked_fn=_toggle_expand)
+            self._build_label(model, item, column_id, color, toggle_handler)
+
+    def build_widget(self, model, item, column_id, level, expanded):
+        color = self._get_color(item)
+
+        def _toggle(_x, _y, _b, _m):
+            self._toggle_enabled(item)
+
+        if isinstance(item, ClusterItem) and column_id == 0:
+            self._build_cluster_cell(model, item, column_id, color, _toggle)
+            return
+
+        self._build_label(model, item, column_id, color, _toggle)
 
     def build_header(self, column_id):
         """Build the header"""
@@ -275,16 +276,10 @@ class ActivatorModel(ui.AbstractItemModel):
         cluster_item.expanded = not cluster_item.expanded
         self._rows = self._build_rows(self._children)
         self._item_changed(None)
-        
-
-    def _is_cluster_item(self, item) -> bool:
-        return isinstance(item, ClusterItem)
-
-    def _is_activator_item(self, item) -> bool:
-        return isinstance(item, ActivatorItem)
+    
 
     def _is_tree_root_proxy(self, item) -> bool:
-        return item is not None and not self._is_cluster_item(item) and not self._is_activator_item(item)
+        return item is not None and not isinstance(item, ClusterItem) and not isinstance(item, ActivatorItem)
 
     def get_item_children(self, item):
         if item is None or self._is_tree_root_proxy(item):
@@ -306,7 +301,7 @@ class ActivatorModel(ui.AbstractItemModel):
         if self._is_tree_root_proxy(item):
             return ""
 
-        if self._is_cluster_item(item):
+        if isinstance(item, ClusterItem):
             switcher = {
                 0: str(item.name),
                 1: "",

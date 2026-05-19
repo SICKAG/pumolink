@@ -6,7 +6,7 @@ from sick.modellink.core.modellink_manager import linked, on_update
 import carb
 
 
-@linked
+@linked(cluster="VAC")
 class LightBarrierClass:
 
     @inject

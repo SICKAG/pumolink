@@ -1,0 +1,18 @@
+#usda 1.0
+(
+    defaultPrim = "Transmitter"
+    endTimeCode = 0
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Scope "Transmitter" (
+    assetInfo = { 
+        string linkedClass = "Transmitter"
+    }
+)
+{
+    string vac:type = "camera"
+    string vac:path = ""
+    rel vac:image_receivers = []
+}

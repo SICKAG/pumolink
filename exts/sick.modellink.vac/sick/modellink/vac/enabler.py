@@ -3,7 +3,7 @@ from injector import inject
 from sick.modellink.core.modellink_manager import linked, usd_attr
 
 
-@linked
+@linked(cluster="VAC")
 class Enabler:
 
     @inject

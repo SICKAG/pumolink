@@ -4,7 +4,7 @@ from sick.modellink.core.modellink_manager import linked, usd_attr
 from .utils import set_translation_on_xform
 
 
-@linked
+@linked(cluster="VAC")
 class Mover:
 
     @inject

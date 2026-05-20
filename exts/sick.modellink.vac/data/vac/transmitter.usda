@@ -14,5 +14,6 @@ def Scope "Transmitter" (
 {
     string vac:type = "camera"
     string vac:path = ""
+    int2 vac:texture_size = (512, 512)
     rel vac:image_receivers = []
 }

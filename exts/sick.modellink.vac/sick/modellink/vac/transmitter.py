@@ -12,15 +12,18 @@ import omni.ui as ui
 import omni.replicator.core as rep
 import omni.usd
 
+DEFAULT_TEXTURE_SIZE = (512, 512)
+
 
 # ──────────────────────────────────────────────────────────────
 # Capture base classes
 # ──────────────────────────────────────────────────────────────
 class RenderCapture:
     """Base class for render capture implementations"""
-    def __init__(self, provider: ui.DynamicTextureProvider, camera_path: str = None):
+    def __init__(self, provider: ui.DynamicTextureProvider, camera_path: str = None, texture_size=DEFAULT_TEXTURE_SIZE):
         self.provider = provider
         self.camera_path = camera_path
+        self.texture_size = texture_size
         self._running = False
         self._thread: Optional[threading.Thread] = None
 
@@ -52,8 +55,8 @@ class RenderCapture:
 
 class ReplicatorCapture(RenderCapture):
     """Captures frames from USD camera using Replicator"""
-    def __init__(self, provider, camera_path):
-        super().__init__(provider, camera_path)
+    def __init__(self, provider, camera_path, texture_size=DEFAULT_TEXTURE_SIZE):
+        super().__init__(provider, camera_path, texture_size)
         self._render_product = None
         self._writer = None
         self._setup_replicator()
@@ -64,7 +67,7 @@ class ReplicatorCapture(RenderCapture):
             # Create RenderProduct
             self._render_product = rep.create.render_product(
                 self.camera_path,
-                (512, 512)
+                self.texture_size
             )
 
             # Custom Writer class
@@ -90,7 +93,7 @@ class ReplicatorCapture(RenderCapture):
             self._writer.initialize(capture=capture_instance)
             self._writer.attach([self._render_product])
 
-            carb.log_info(f"ReplicatorCapture initialized for camera: {camera_path}")
+            carb.log_info(f"ReplicatorCapture initialized for camera: {self.camera_path}")
         except Exception as e:
             carb.log_error(f"ReplicatorCapture setup failed: {e}")
 
@@ -109,8 +112,8 @@ class ReplicatorCapture(RenderCapture):
 
 class MovieCapture(RenderCapture):
     """Captures frames from a video file"""
-    def __init__(self, provider, video_path):
-        super().__init__(provider, video_path)
+    def __init__(self, provider, video_path, texture_size=DEFAULT_TEXTURE_SIZE):
+        super().__init__(provider, video_path, texture_size)
         self._cap = None
         self._fps = 30
         self._frame_delay = 1.0 / self._fps
@@ -134,8 +137,7 @@ class MovieCapture(RenderCapture):
 
                 # Convert BGR to RGB
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                # Resize to 512x512
-                frame = cv2.resize(frame, (512, 512))
+                frame = cv2.resize(frame, self.texture_size)
                 self._push_frame(frame)
                 time.sleep(self._frame_delay)
 
@@ -173,6 +175,7 @@ class Transmitter:
     Attributes:
         vac:type - "camera" or "movie"
         vac:path - USD camera path (for camera) or file path (for movie)
+        vac:texture_size - Target texture size as int2 (width, height)
         vac:image_receiver - Relationship to prims that receive the texture
     """
 
@@ -186,6 +189,45 @@ class Transmitter:
         self._set_params()
         self._initialize_capture()
 
+    def _get_texture_size(self) -> tuple[int, int]:
+        default_size = DEFAULT_TEXTURE_SIZE
+        size_attr = self.prim.GetAttribute("vac:texture_size")
+        size_value = size_attr.Get() if size_attr else None
+
+        if size_value is None:
+            return default_size
+
+        if isinstance(size_value, str):
+            cleaned = size_value.strip().strip("()[]")
+            parts = [part.strip() for part in cleaned.split(",") if part.strip()]
+            if len(parts) != 2:
+                carb.log_warn(f"Invalid vac:texture_size='{size_value}', using default {default_size}")
+                return default_size
+            raw_width, raw_height = parts
+        else:
+            try:
+                raw_width, raw_height = size_value[0], size_value[1]
+            except (TypeError, IndexError):
+                carb.log_warn(f"Invalid vac:texture_size='{size_value}', using default {default_size}")
+                return default_size
+
+        try:
+            width = int(raw_width)
+            height = int(raw_height)
+        except (TypeError, ValueError):
+            carb.log_warn(
+                f"Invalid texture size values (width={raw_width}, height={raw_height}), using default {default_size}"
+            )
+            return default_size
+
+        if width <= 0 or height <= 0:
+            carb.log_warn(
+                f"Texture size must be > 0 (width={width}, height={height}), using default {default_size}"
+            )
+            return default_size
+
+        return (width, height)
+
     def _set_params(self):
         """Load configuration attributes"""
         type_attr = self.prim.GetAttribute("vac:type")
@@ -193,8 +235,11 @@ class Transmitter:
         
         self.capture_type = type_attr.Get() if type_attr else "camera"
         self.capture_path = path_attr.Get() if path_attr else None
+        self.texture_size = self._get_texture_size()
         
-        carb.log_info(f"Transmitter initialized - Type: {self.capture_type}, Path: {self.capture_path}")
+        carb.log_info(
+            f"Transmitter initialized - Type: {self.capture_type}, Path: {self.capture_path}, TextureSize: {self.texture_size}"
+        )
 
     def _initialize_capture(self):
         """Set up capture based on type"""
@@ -207,15 +252,16 @@ class Transmitter:
             self._provider = ui.DynamicTextureProvider(texture_name)
             
             # Initialize empty texture
-            initial = np.zeros((512, 512, 4), dtype=np.uint8)
-            self._provider.set_data_array(initial, [512, 512, 4])
+            width, height = self.texture_size
+            initial = np.zeros((height, width, 4), dtype=np.uint8)
+            self._provider.set_data_array(initial, [height, width, 4])
             
             # Create appropriate capture based on type
             if self.capture_type == "camera" and self.capture_path:
-                self._current_capture = ReplicatorCapture(self._provider, self.capture_path)
+                self._current_capture = ReplicatorCapture(self._provider, self.capture_path, self.texture_size)
                 self._current_capture.start()
             elif self.capture_type == "movie" and self.capture_path:
-                self._current_capture = MovieCapture(self._provider, self.capture_path)
+                self._current_capture = MovieCapture(self._provider, self.capture_path, self.texture_size)
                 self._current_capture.start()
             else:
                 carb.log_warn(f"Invalid transmitter config - Type: {self.capture_type}, Path: {self.capture_path}")
@@ -257,7 +303,7 @@ class Transmitter:
         self._bind_receivers(texture_name)
 
 
-    @usd_attr("vac:type;vac:path")
+    @usd_attr("vac:type;vac:path;vac:texture_size")
     def _update_config(self):
         """Update capture configuration when attributes change"""
         self._set_params()

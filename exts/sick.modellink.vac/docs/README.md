@@ -245,6 +245,7 @@ Streams camera feeds or video files as dynamic textures to receiver materials in
 |-----------|------|---------|-------------|
 | `vac:type` | String | "camera" | Source type: "camera" or "movie" |
 | `vac:path` | String | - | USD camera path (for type="camera") or file path (for type="movie") |
+| `vac:texture_size` | Int2 | (512, 512) | Texture size in pixels as (width, height) |
 
 **Relationships:**
 - `vac:image_receiver` - Target prims that receive the texture material
@@ -254,7 +255,7 @@ Streams camera feeds or video files as dynamic textures to receiver materials in
 - `_bind_receivers(texture_name: str)` - Binds material to receiver prims (internal)
 
 **Behavior:**
-- **Camera mode**: Uses Replicator to capture from USD camera at 512x512
+- **Camera mode**: Uses Replicator to capture from USD camera with configurable texture size
 - **Movie mode**: Reads video file frame-by-frame via OpenCV, loops on end
 - Dynamically creates OmniPBR material with diffuse texture for each receiver
 - Texture updates in real-time as new frames arrive
@@ -323,4 +324,3 @@ Generates periodic waveforms (sine, square, triangle, sawtooth) for continuous c
 - Sends computed value to receiver prims via `vac:value`
 
 ---
-

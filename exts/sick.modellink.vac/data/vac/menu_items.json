@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Monitor",
+    "usd_path": "data/vac/monitor.usda"
+  },
+  {
+    "name": "Transmitter",
+    "usd_path": "data/vac/transmitter.usda"
+  },
+  {
+    "name": "Wave Generator",
+    "usd_path": "data/vac/wave_gen.usd"
+  },
+  {
+    "name": "Mover Test",
+    "usd_path": "data/vac/test_mover.usd"
+  },
+  {
+    "name": "Rotor Test",
+    "usd_path": "data/vac/test_rotor.usd"
+  },
+  {
+    "name": "Common Test",
+    "usd_path": "data/vac/test_cammon.usd"
+  }
+]

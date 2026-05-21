@@ -35,8 +35,9 @@ use_online_index = true
 # Use omni.ui to build simple UI
 [dependencies]
 "sick.modellink.core" = {}
+"omni.kit.menu.utils" = {}
+"omni.kit.context_menu" = {}
 
 # Main python module this extension provides, it will be publicly available as "import sick.modellink.samples".
 [[python.module]]
 name = "sick.modellink.vac"
-

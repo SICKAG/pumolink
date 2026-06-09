@@ -1,26 +1,42 @@
 [
   {
+    "category": "Visual",
     "name": "Monitor",
     "usd_path": "data/vac/monitor.usda"
   },
   {
+    "category": "Visual",
     "name": "Transmitter",
     "usd_path": "data/vac/transmitter.usda"
   },
   {
+    "category": "Signals",
     "name": "Wave Generator",
     "usd_path": "data/vac/wave_gen.usd"
   },
   {
-    "name": "Mover Test",
+    "category": "Connectivity",
+    "name": "MQTT Coupler",
+    "usd_path": "data/testfiles/mqtt_coupler.usda"
+  },
+  {
+    "category": "Sensors",
+    "name": "Light Barrier",
+    "usd_path": "data/testfiles/LightBarrier.usda"
+  },
+  {
+    "category": "Actuators",
+    "name": "Signal Lamp",
+    "usd_path": "data/testfiles/lamp.usda"
+  },
+  {
+    "category": "Examples",
+    "name": "Mover Example",
     "usd_path": "data/vac/test_mover.usd"
   },
   {
-    "name": "Rotor Test",
+    "category": "Examples",
+    "name": "Rotor Example",
     "usd_path": "data/vac/test_rotor.usd"
-  },
-  {
-    "name": "Common Test",
-    "usd_path": "data/vac/test_cammon.usd"
   }
 ]

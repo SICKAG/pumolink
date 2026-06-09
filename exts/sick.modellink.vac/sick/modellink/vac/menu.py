@@ -16,6 +16,7 @@ from omni.kit.menu.utils import MenuItemDescription, MenuItemOrder
 class _MenuEntry:
     name: str
     usd_path: str
+    category: str | None = None
 
 
 class VacCreateMenu:
@@ -76,13 +77,7 @@ class VacCreateMenu:
         menu_entries = self._load_menu_config()
 
         if self._enable_create_menu:
-            sub_menu = [
-                MenuItemDescription(
-                    name=entry.name,
-                    onclick_fn=self._make_create_onclick(entry.usd_path, entry.name),
-                )
-                for entry in menu_entries
-            ]
+            sub_menu = self._build_create_sub_menu(menu_entries)
 
             self._material_menu_list = [
                 MenuItemDescription(
@@ -97,19 +92,42 @@ class VacCreateMenu:
         if self._enable_stage_context_menu or self._enable_global_context_menu:
             self._add_context_menu_items(menu_entries)
 
-    def _add_context_menu_items(self, menu_entries: list[_MenuEntry]) -> None:
-        context_sub_menu = []
+    def _build_create_sub_menu(self, menu_entries: list[_MenuEntry]) -> list[MenuItemDescription]:
+        grouped_entries: dict[str, list[_MenuEntry]] = {}
+        ungrouped_entries: list[_MenuEntry] = []
 
         for entry in menu_entries:
-            onclick_fn = self._make_context_onclick(entry.usd_path, entry.name)
+            if entry.category:
+                grouped_entries.setdefault(entry.category, []).append(entry)
+            else:
+                ungrouped_entries.append(entry)
 
-            context_sub_menu.append(
-                {
-                    "name": entry.name,
-                    "onclick_fn": onclick_fn,
-                    "show_fn": self._always_show_fn,
-                }
+        grouped_submenus = [
+            MenuItemDescription(
+                name=category,
+                sub_menu=[
+                    MenuItemDescription(
+                        name=entry.name,
+                        onclick_fn=self._make_create_onclick(entry.usd_path, entry.name),
+                    )
+                    for entry in entries
+                ],
             )
+            for category, entries in grouped_entries.items()
+        ]
+
+        ungrouped_items = [
+            MenuItemDescription(
+                name=entry.name,
+                onclick_fn=self._make_create_onclick(entry.usd_path, entry.name),
+            )
+            for entry in ungrouped_entries
+        ]
+
+        return grouped_submenus + ungrouped_items
+
+    def _add_context_menu_items(self, menu_entries: list[_MenuEntry]) -> None:
+        context_sub_menu = self._build_context_sub_menu(menu_entries)
 
         stage_menu = None
         global_menu = None
@@ -131,6 +149,44 @@ class VacCreateMenu:
             }
 
         self._register_context_menus(stage_menu, global_menu)
+
+    def _build_context_sub_menu(self, menu_entries: list[_MenuEntry]) -> list[dict[str, Any]]:
+        grouped_entries: dict[str, list[_MenuEntry]] = {}
+        ungrouped_entries: list[_MenuEntry] = []
+
+        for entry in menu_entries:
+            if entry.category:
+                grouped_entries.setdefault(entry.category, []).append(entry)
+            else:
+                ungrouped_entries.append(entry)
+
+        grouped_submenus = [
+            {
+                "name": {
+                    category: [
+                        {
+                            "name": entry.name,
+                            "onclick_fn": self._make_context_onclick(entry.usd_path, entry.name),
+                            "show_fn": self._always_show_fn,
+                        }
+                        for entry in entries
+                    ]
+                },
+                "show_fn": self._always_show_fn,
+            }
+            for category, entries in grouped_entries.items()
+        ]
+
+        ungrouped_items = [
+            {
+                "name": entry.name,
+                "onclick_fn": self._make_context_onclick(entry.usd_path, entry.name),
+                "show_fn": self._always_show_fn,
+            }
+            for entry in ungrouped_entries
+        ]
+
+        return grouped_submenus + ungrouped_items
 
     def _register_context_menus(self, stage_menu: dict[str, Any] | None, global_menu: dict[str, Any] | None) -> None:
         if stage_menu is None and global_menu is None:
@@ -223,11 +279,13 @@ class VacCreateMenu:
 
         display_name = str(value.get("name", "VAC Item")).strip() or "VAC Item"
         usd_path = str(value.get("usd_path", "")).strip()
+        raw_category = value.get("category")
+        category = str(raw_category).strip() if raw_category is not None else ""
         if not usd_path:
             carb.log_warn(f"Skipping invalid menu entry at index {index}: empty usd_path")
             return None
 
-        return _MenuEntry(name=display_name, usd_path=usd_path)
+        return _MenuEntry(name=display_name, usd_path=usd_path, category=category or None)
 
     def _create_from_usd(self, relative_usd_path: str, display_name: str, context_payload: Any | None = None) -> None:
         stage = omni.usd.get_context().get_stage()

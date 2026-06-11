@@ -516,7 +516,7 @@ class ModelLinkManager:
             link.prev = None
             link.destroy()
             self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,
-                                       payload={"prim_path": resync_path,
+                                       payload={"prim_path": str(resync_path),
                                                 "class_name": link._activator.clazz.__name__})
 
         _for_all_do(head, _remove_link_func)
@@ -592,7 +592,7 @@ class ModelLinkManager:
         prim_path = prim.GetPrimPath()
         self._links[prim_path] = ModelLink(instance, prim, activator, self._links.get(prim_path, None))
         self._fire_modellink_event(sick.modellink.core.MODELLINK_ADDED,
-                                payload={"prim_path": prim_path,
+                                payload={"prim_path": str(prim_path),
                                             "class_name": activator.clazz.__name__})
 
     def _create(self, clazz, prim: Usd.Prim):

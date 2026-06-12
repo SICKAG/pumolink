@@ -31,6 +31,7 @@ icon = "data/icon.png"
 # Use omni.ui to build simple UI
 [dependencies]
 "sick.modellink.core" = {}
+"sick.modellink.storage" = {}
 
 # Main python module this extension provides, it will be publicly available as "import sick.modellink.samples".
 [[python.module]]

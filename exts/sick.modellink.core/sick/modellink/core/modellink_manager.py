@@ -286,6 +286,16 @@ class ModelLinkActivator():
                 if playing or bool(event.__meta_editmode__):
                     self._call(event, instance, prim, None)
 
+    @property
+    def cluster_str(self):
+        res = self.cluster
+        if(res is None):
+            res = "__None__"
+        elif(not res): # un-falsy
+            res = "__Empty__"
+            
+        return res
+
     #############################
     # Private methods
     #############################
@@ -378,7 +388,7 @@ class ModelLinkManager:
                                    payload={"detector": activator.detectType,
                                             "reference": activator.reference,
                                             "class_name": activator.clazz.__name__,
-                                            "cluster": activator.cluster})
+                                            "cluster": activator.cluster_str})
 
 
     def set_class_enabled(self, clazz, enabled: bool, keep_links: bool = False):
@@ -398,7 +408,7 @@ class ModelLinkManager:
                                        payload={"detector": activator.detectType,
                                                 "reference": activator.reference,
                                                 "class_name": activator.clazz.__name__,
-                                                "cluster": activator.cluster})
+                                                "cluster": activator.cluster_str})
 
 
     def set_cluster_enabled(self, cluster: str | None, enabled: bool, keep_links: bool = False):
@@ -422,7 +432,7 @@ class ModelLinkManager:
                                        payload={"detector": activator.detectType,
                                                 "reference": activator.reference,
                                                 "class_name": activator.clazz.__name__,
-                                                "cluster": activator.cluster})
+                                                "cluster": activator.cluster_str})
 
         if enabled and changed:
             self.update_links(renew_all=True)
@@ -675,7 +685,7 @@ class ModelLinkManager:
                 self._set_link(prim_path, new_head)
                 link.destroy()
                 self._fire_modellink_event(sick.modellink.core.MODELLINK_REMOVED,
-                                           payload={"prim_path": prim_path,
+                                           payload={"prim_path": str(prim_path),
                                                     "class_name": link._activator.clazz.__name__})
 
             _for_all_do(head, _remove_if_matches)
@@ -725,4 +735,4 @@ class ModelLinkManager:
                                    payload={"detector": value.detectType,
                                             "reference": value.reference,
                                             "class_name": value.clazz.__name__,
-                                            "cluster": value.cluster})
+                                            "cluster": value.cluster_str})
